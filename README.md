@@ -6,13 +6,13 @@ In this page, we provide examples illustrating the different options offered by 
 
 This section describes the process of building databases for different softwares (Kraken, Bracken, Mash, ...) using a list of reference genomes.
 
-[metagm_build_pipeline](img/metagm_build_pipeline.png)
+[metagm_build_pipeline](img/metagm_build_pipeline.PNG)
 
 ## metagm_classify module
 
 This section describes the process of classifying metagenomics sequencing reads to get both taxonomic and functional profiles.
 
-[metagm_classify_pipeline](img/metagm_classify_pipeline.png)
+[metagm_classify_pipeline](img/metagm_classify_pipeline.PNG)
 
 ## statistical analysis
 
