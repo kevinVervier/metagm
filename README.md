@@ -32,6 +32,11 @@ This section describes the process of classifying metagenomics sequencing reads 
 In this section, we describe the process used to assign a given genome to the current taxonomy.
 As mentioned in the section 'metagm_build module', users have the option to rely on either the [gtdb](https://gtdb.ecogenomic.org/) taxonomy done with `gtdb-tk classify_wf` [function](https://github.com/Ecogenomics/GtdbTk).
 
+### How to build a tree in NCBI format using gtdb metadata
+
+Kraken software relies on taxonomic information presented in the 'NCBI format' (a pair of `nodes.dmp` and `names.dmp`). 
+Unfortunately, gtdb does not provide (yet?) its taxonomy in such format. Therefore, we downloaded all the gtdb [archeal metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/ar122_metadata.tsv) and [bacterial metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/bac120_metadata.tsv) containing all taxonomic paths for every genome found in the database.
+
 ## statistical analysis
 
 This section provides some R snippets to do analysis using the metagm_classify output files. 
