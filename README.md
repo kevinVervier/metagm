@@ -27,6 +27,11 @@ This section describes the process of classifying metagenomics sequencing reads 
 
 ### Outputs
 
+## Taxonomy
+
+In this section, we describe the process used to assign a given genome to the current taxonomy.
+As mentioned in the section 'metagm_build module', users have the option to rely on either the [gtdb](https://gtdb.ecogenomic.org/) taxonomy done with `gtdb-tk classify_wf` [function](https://github.com/Ecogenomics/GtdbTk).
+
 ## statistical analysis
 
 This section provides some R snippets to do analysis using the metagm_classify output files. 
