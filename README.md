@@ -8,11 +8,24 @@ This section describes the process of building databases for different softwares
 
 ![metagm_build_pipeline](img/metagm_build_pipeline.PNG)
 
+### Inputs (mandatory)
+
+### Options
+
+### Outputs
+
+
 ## metagm_classify module
 
 This section describes the process of classifying metagenomics sequencing reads to get both taxonomic and functional profiles.
 
 ![metagm_classify_pipeline](img/metagm_classify_pipeline.PNG)
+
+### Inputs (mandatory)
+
+### Options
+
+### Outputs
 
 ## statistical analysis
 
