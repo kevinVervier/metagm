@@ -24,7 +24,7 @@ There is two mandatory positional arguments for this function:
 * a `genomes` list (text file):
   * __mandatory__ first column contains the absolute paths to genome assemblies (`.fa` or `.fna`)
   * second column contains the genome names (if not provided, the file name will be used)
-  * third column contains the taxids (if not provided, a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed)
+  * third column contains the taxids (if not provided, a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed) 
 * an `output` folder to store all the files produced by the script
 
 ### Options
@@ -55,6 +55,19 @@ The `output` folder contains a directory for each task that is performed:
 * `output/Kraken` contains the [Kraken2 database](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#kraken-2-databases), as well as the [Bracken files](https://github.com/jenniferlu717/Bracken#step-1-generate-the-bracken-database-file-databasexmerskmer_distrib) (if requested)
 * `output/Mash` contains the [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) file
 * `output/genome_with_[gtdb|mash]_taxid.txt.txt` contains the list of taxids assigned to the genomes list if a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed
+
+### Examples
+
+The following examples illustrate various featuresfrom the `metagm_build.py` script. Depending how busy _farm_ is, these examples can take some time to run.
+
+#### Quality control + taxonomic assignment on a list of genomes
+The following command applies:
+1. [QC](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on 10 genomes.
+2. assign 
+
+```
+metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./ --QC  --taxoAssign --gtdb
+```
 
 
 ### Comments
