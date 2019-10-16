@@ -14,6 +14,9 @@ This section describes the process of building databases for different softwares
 
 ### Outputs
 
+## Comments
+
+* Building a Kraken database requires a large memory amount (>100Gb). The function will automatically submit the final `kraken_build` job on `teramem` queue which means users need to run it on farm3 (or farm4/5 when available).
 
 ## metagm_classify module
 
