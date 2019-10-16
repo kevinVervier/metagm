@@ -30,7 +30,7 @@ There is two mandatory positional arguments for this function:
 The script `metagm_build.py` also offers options in the building database process:
 * `-h`: help display
 * `-v`: verbose mode for additional details on each step
-* `--QC`: run [quality control]((https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on the list of genomes before building any database. If not done, the scirpt assumes that all the genomes have already been cheked.
+* `--QC`: run [quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on the list of genomes before building any database. If not done, the scirpt assumes that all the genomes have already been cheked.
 
 ### Outputs
 
