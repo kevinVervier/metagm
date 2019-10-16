@@ -15,6 +15,10 @@ There is two mandatory positional arguments for this function:
 
 ### Options
 The `output` folder contains a directory for each task that is performed:
+* `output/merge_final` contains quality control (QC) results for all the genomes
+  * `output/merge_final/ValidatedGenomes.txt` is the list of all genomes that pass QC
+  * `output/merge_final/FilteredGenomes.txt` is the list of all genomes that fail QC
+  * `output/merge_final/log.txt` provides details on why a genome failed QC
 * `output/Kraken` contains the [Kraken2 database](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#kraken-2-databases), as well as the [Bracken files](https://github.com/jenniferlu717/Bracken#step-1-generate-the-bracken-database-file-databasexmerskmer_distrib) (if requested)
 * `output/Mash` contains the [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) file
 
