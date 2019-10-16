@@ -11,10 +11,12 @@ This section describes the process of building databases for different softwares
 ### Inputs (mandatory)
 There is two mandatory positional arguments for this function:
 * a `genomes` list (text file):
-  * @mandatory@ first column contains the absolute paths to genome assemblies (`.fa` or `.fna`)
+  * __mandatory__ first column contains the absolute paths to genome assemblies (`.fa` or `.fna`)
   * second column contains the genome names (if not provided, the file name will be used)
-  * third column contains the taxids (if not provided, a taxonomic assignment step is performed)
+  * third column contains the taxids (if not provided, a [taxonomic assignment](#markdown-header-taxonomic-assignment) step is performed)
 * an `output` folder
+
+
 
 ### Options
 The `output` folder contains a directory for each task that is performed:
@@ -49,10 +51,11 @@ This section describes the process of classifying metagenomics sequencing reads 
 
 # Taxonomy
 
+## Taxonomic assignment
 In this section, we describe the process used to assign a given genome to the current taxonomy.
 As mentioned in the section 'metagm_build module', users have the option to rely on either the [gtdb](https://gtdb.ecogenomic.org/) taxonomy done with `gtdb-tk classify_wf` [function](https://github.com/Ecogenomics/GtdbTk).
 
-### How to build a tree in NCBI format using gtdb metadata
+## How to build a tree in NCBI format using gtdb metadata
 
 Kraken software relies on taxonomic information presented in the 'NCBI format' (a pair of `nodes.dmp` and `names.dmp`). 
 Unfortunately, gtdb does not provide (yet?) its taxonomy in such format. Therefore, we downloaded all the gtdb [archeal metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/ar122_metadata.tsv) and [bacterial metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/bac120_metadata.tsv) containing all taxonomic paths for every genome found in the database.
