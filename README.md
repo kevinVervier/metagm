@@ -13,7 +13,7 @@ There is two mandatory positional arguments for this function:
 * a `genomes` list (text file):
   * __mandatory__ first column contains the absolute paths to genome assemblies (`.fa` or `.fna`)
   * second column contains the genome names (if not provided, the file name will be used)
-  * third column contains the taxids (if not provided, a [taxonomic assignment](#markdown-header-taxonomic-assignment) step is performed)
+  * third column contains the taxids (if not provided, a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed)
 * an `output` folder
 
 
