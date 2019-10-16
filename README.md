@@ -3,7 +3,7 @@
 In this page, we provide examples illustrating the different options offered by the platform.
 
 ## Before starting
-To use all the scripts described in this page, users need to add the following to their `~/.profile` file:
+__To use all the scripts described in this page, users need to add__ the following to their `~/.profile` file:
 
 ```
 # add the metagm library to your path
@@ -37,6 +37,7 @@ The `output` folder contains a directory for each task that is performed:
   * `output/merge_final/ValidatedGenomes.txt` is the list of all genomes that pass QC
   * `output/merge_final/FilteredGenomes.txt` is the list of all genomes that fail QC
   * `output/merge_final/log.txt` provides details on why a genome failed QC
+* `output/tmp/\*` folders contain the [checkm lineage_wf](https://github.com/Ecogenomics/CheckM/wiki/Workflows#lineage-specific-workflow) output for the batch `i` of genomes (if parallelized)
 * `output/Kraken` contains the [Kraken2 database](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#kraken-2-databases), as well as the [Bracken files](https://github.com/jenniferlu717/Bracken#step-1-generate-the-bracken-database-file-databasexmerskmer_distrib) (if requested)
 * `output/Mash` contains the [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) file
 
