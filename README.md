@@ -2,6 +2,16 @@
 
 In this page, we provide examples illustrating the different options offered by the platform.
 
+## Before starting
+To use all the scripts described in this page, users need to add the following to their `~/.profile` file:
+
+```
+# add the metagm library to your path
+export PATH=/nfs/team162/kv4/github/metagm/metagm/wrapper:$PATH
+#add Bracken local install (needed for now as the Pathinf team has not installed it yet)
+export PATH=/nfs/team162/kv4/bin/Bracken/:$PATH
+```
+
 ## metagm_build module
 
 This section describes the process of building databases for different softwares (Kraken, Bracken, Mash, ...) using a list of reference genomes.
@@ -14,11 +24,14 @@ There is two mandatory positional arguments for this function:
   * __mandatory__ first column contains the absolute paths to genome assemblies (`.fa` or `.fna`)
   * second column contains the genome names (if not provided, the file name will be used)
   * third column contains the taxids (if not provided, a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed)
-* an `output` folder
-
-
+* an `output` folder to store all the files produced by the script
 
 ### Options
+The script `metagm_build.py` also offers options to add flexibility in the building database process:
+* 
+
+### Outputs
+
 The `output` folder contains a directory for each task that is performed:
 * `output/merge_final` contains quality control (QC) results for all the genomes
   * `output/merge_final/ValidatedGenomes.txt` is the list of all genomes that pass QC
@@ -27,11 +40,12 @@ The `output` folder contains a directory for each task that is performed:
 * `output/Kraken` contains the [Kraken2 database](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#kraken-2-databases), as well as the [Bracken files](https://github.com/jenniferlu717/Bracken#step-1-generate-the-bracken-database-file-databasexmerskmer_distrib) (if requested)
 * `output/Mash` contains the [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) file
 
-### Outputs
 
 ### Comments
 
+* You can access all the information in the command help `metagm_build.py -h `
 * Building a Kraken database requires a large memory amount (>100Gb). The function will automatically submit the final `kraken_build` job on `teramem` queue which means users need to run it on farm3 (or farm4/5 when available).
+* If neither `--QC`, `--Kraken`, `--Bracken`, or `--Mash` is provided, the `metagm_build.py` is not going to do anything.
 
 ## metagm_classify module
 
