@@ -9,12 +9,18 @@ This section describes the process of building databases for different softwares
 ![metagm_build_pipeline](img/metagm_build_pipeline.PNG)
 
 ### Inputs (mandatory)
+There is two mandatory positional arguments for this function:
+* a `genomes` list
+* an `output` folder
 
 ### Options
+The `output` folder contains a directory for each task that is performed:
+* `output/Kraken` contains the [Kraken2 database](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#kraken-2-databases), as well as the [Bracken files](https://github.com/jenniferlu717/Bracken#step-1-generate-the-bracken-database-file-databasexmerskmer_distrib) (if requested)
+* `output/Mash` contains the [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) file
 
 ### Outputs
 
-## Comments
+### Comments
 
 * Building a Kraken database requires a large memory amount (>100Gb). The function will automatically submit the final `kraken_build` job on `teramem` queue which means users need to run it on farm3 (or farm4/5 when available).
 
@@ -30,7 +36,7 @@ This section describes the process of classifying metagenomics sequencing reads 
 
 ### Outputs
 
-## Other functions
+### Comments
 
 ## Classes
 
@@ -51,5 +57,7 @@ This section provides some R snippets to do analysis using the metagm_classify o
 More details are given in the R vignette '.Rmd', also found in this repository.
 
 # Miscalleneous
+
+## Other utility functions/scripts
 
 # TODO
