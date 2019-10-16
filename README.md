@@ -27,8 +27,10 @@ There is two mandatory positional arguments for this function:
 * an `output` folder to store all the files produced by the script
 
 ### Options
-The script `metagm_build.py` also offers options to add flexibility in the building database process:
-* 
+The script `metagm_build.py` also offers options in the building database process:
+* `-h`: help display
+* `-v`: verbose mode for additional details on each step
+* `--QC`: run [quality control]((https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on the list of genomes before building any database. If not done, the scirpt assumes that all the genomes have already been cheked.
 
 ### Outputs
 
@@ -37,9 +39,10 @@ The `output` folder contains a directory for each task that is performed:
   * `output/merge_final/ValidatedGenomes.txt` is the list of all genomes that pass QC
   * `output/merge_final/FilteredGenomes.txt` is the list of all genomes that fail QC
   * `output/merge_final/log.txt` provides details on why a genome failed QC
-* `output/tmp/\*` folders contain the [checkm lineage_wf](https://github.com/Ecogenomics/CheckM/wiki/Workflows#lineage-specific-workflow) output for the batch `i` of genomes (if parallelized)
+* `output/tmp$i` folders contain the [checkm lineage_wf](https://github.com/Ecogenomics/CheckM/wiki/Workflows#lineage-specific-workflow) output for the batch `i` of genomes (if parallelized)
 * `output/Kraken` contains the [Kraken2 database](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#kraken-2-databases), as well as the [Bracken files](https://github.com/jenniferlu717/Bracken#step-1-generate-the-bracken-database-file-databasexmerskmer_distrib) (if requested)
 * `output/Mash` contains the [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) file
+* `output/genome_with_[gtdb|mash]_taxid.txt.txt` contains the list of taxids assigned to the genomes list if a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed
 
 
 ### Comments
@@ -84,5 +87,7 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 # Miscalleneous
 
 ## Other utility functions/scripts
+
+### Quality control
 
 # TODO
