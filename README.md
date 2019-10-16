@@ -61,14 +61,18 @@ The `output` folder contains a directory for each task that is performed:
 The following examples illustrate various featuresfrom the `metagm_build.py` script. Depending how busy _farm_ is, these examples can take some time to run.
 
 #### Quality control + taxonomic assignment on a list of genomes
-The following command applies:
-1. [QC](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on 10 genomes.
-2. assign 
 
 ```
-metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./ --QC  --taxoAssign --gtdb
+metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./ --QC --taxoAssign --gtdb
 ```
 
+The command applies:
+1. [Quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on 10 genomes.
+ * according to `./merge_final/ValidatedGenomes.txt`, there is XYZ genomes that passed QC
+ * according to `./merge_final/FilteredGenomes.txt`, there is XYZ genomes that failed QC
+ * according to `./merge_final/log.txt`, the genomes were filtered because of XYZ
+2. [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) on validated genomes only, suing gtdb taxonomy.
+ * the taxonomic assignment can be found in `./genome_with_gtdb_taxid.txt`
 
 ### Comments
 
