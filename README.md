@@ -10,7 +10,10 @@ This section describes the process of building databases for different softwares
 
 ### Inputs (mandatory)
 There is two mandatory positional arguments for this function:
-* a `genomes` list
+* a `genomes` list (text file):
+ *  @mandatory@: first column contains the absolute paths to genome assemblies (`.fa` or `.fna`)
+ * second column contains the genome names (if not provided, the file name will be used)
+ * third column contains the taxids (if not provided, a taxonomic assignment step is performed)
 * an `output` folder
 
 ### Options
