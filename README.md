@@ -35,7 +35,14 @@ The script `metagm_build.py` also offers options in the building database proces
 * `--KrakenDB`: build a Kraken2 database using the list of genomes
 * `--BrackenDB`: build a Bracken database using the list of genomes. Requires a Kraken database to exist, and will therefore automatically creates one.
 * `--MashDB`: create a [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) of all the genomes.
-* `gtdb`: rely on internal gtdb taxonomy (current: `/nfs/pathogen005/team162/gtdb_taxonomy`) instead of NCBI
+* `gtdb`: rely on gtdb taxonomy (current: `/nfs/pathogen005/team162/gtdb_taxonomy`) instead of NCBI (_default: true_)
+* `-b`: define the number of genomes to be analyzed in each batch (_default: 10_)
+* `-t`: define the number of threads used in each job (_default: 2_)
+* `-q`: define to which queue the jobs are submitted (_default: long_)
+* `-m`: define the amount of memory requested for each job (_default: 64_)
+* `--maxcontamination`: define the maximal value on checkm contamination to filter out a genome during QC (_default: 5_)
+* `--mincompleteness`: define the minimal value on checkm completeness to filter out a genome during QC (_default: 90_)
+
 ### Outputs
 
 The `output` folder contains a directory for each task that is performed:
