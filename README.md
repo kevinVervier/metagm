@@ -109,13 +109,16 @@ Current taxonomic tree build from GTDB metadata is stored here: `/nfs/pathogen00
 Kraken software relies on taxonomic information presented in the 'NCBI format' (a pair of `nodes.dmp` and `names.dmp`). 
 Unfortunately, gtdb does not provide (yet?) its taxonomy in such format. Therefore, we downloaded all the gtdb [archeal metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/ar122_metadata.tsv) and [bacterial metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/bac120_metadata.tsv) containing all taxonomic paths for every genome found in the database.
 
-
-
 # Statistical analysis
 
 This section provides some R snippets to do analysis using the metagm_classify output files. 
 
 More details are given in the R vignette '.Rmd', also found in this repository.
+
+# MySQL Knowledge database
+
+This section describes how to log in the lab mySQL database.
+For obvious security reasons, the password is not provided here and needs to be requested to Nick/Hilary.
 
 # Miscalleneous
 
