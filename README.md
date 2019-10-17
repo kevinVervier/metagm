@@ -36,7 +36,7 @@ The script `metagm_build.py` also offers options in the building database proces
 * `--KrakenDB`: build a Kraken2 database using the list of genomes
 * `--BrackenDB`: build a Bracken database using the list of genomes. Requires a Kraken database to exist, and will therefore automatically creates one.
 * `--MashDB`: create a [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) of all the genomes.
-* `gtdb`: rely on gtdb taxonomy (current: `/nfs/pathogen005/team162/gtdb_taxonomy`) instead of NCBI (_default: true_)
+* `--ncbi`: rely on NCBI taxonomy instead of gtdb (_default: false_)
 * `-b`: define the number of genomes to be analyzed in each batch (_default: 10_)
 * `-t`: define the number of threads used in each job (_default: 2_)
 * `-q`: define to which queue the jobs are submitted (_default: long_)
@@ -101,6 +101,8 @@ This section describes the process of classifying metagenomics sequencing reads 
 ## Taxonomic assignment
 In this section, we describe the process used to assign a given genome to the current taxonomy.
 As mentioned in the section 'metagm_build module', users have the option to rely on either the [gtdb](https://gtdb.ecogenomic.org/) taxonomy done with `gtdb-tk classify_wf` [function](https://github.com/Ecogenomics/GtdbTk).
+
+Current taxonomic tree build from GTDB metadata is stored here: `/nfs/pathogen005/team162/gtdb_taxonomy` 
 
 ## How to build a tree in NCBI format using gtdb metadata
 
