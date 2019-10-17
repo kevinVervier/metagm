@@ -54,7 +54,7 @@ The `output` folder contains a directory for each task that is performed:
 * `output/tmp$i` folders contain the [checkm lineage_wf](https://github.com/Ecogenomics/CheckM/wiki/Workflows#lineage-specific-workflow) output for the batch `i` of genomes (if parallelized)
 * `output/Kraken` contains the [Kraken2 database](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#kraken-2-databases), as well as the [Bracken files](https://github.com/jenniferlu717/Bracken#step-1-generate-the-bracken-database-file-databasexmerskmer_distrib) (if requested)
 * `output/Mash` contains the [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) file
-* `output/genome_with_[gtdb|mash]_taxid.txt.txt` contains the list of taxids assigned to the genomes list if a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed
+* `output/genome_with_[gtdb|ncbi]_taxid.txt.txt` contains the list of taxids assigned to the genomes list if a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed
 
 ### Examples
 
