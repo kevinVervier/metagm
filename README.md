@@ -76,7 +76,7 @@ The command applies:
 
 #### Kraken/Bracken database on a list of validated genomes
 
-It is possible to skip the quality control and directly create Kraken database if user already checked the genomes. Additionally, the taxonomic assignment step can be ignored if user provides a taxid for each genome (third column in input list). Here, we use the curated genome list generated in the previous [example](https://github.com/kevinVervier/metagm/blob/master/README.md####kraken/Bracken-database-on-a-list-of-validated-genomes)
+It is possible to skip the quality control and directly create Kraken database if user already checked the genomes. Additionally, the taxonomic assignment step can be ignored if user provides a taxid for each genome (third column in input list). Here, we use the curated genome list generated in the previous [example](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control--taxonomic-assignment-on-a-list-of-genomes)
 
 ```
 metagm_build.py ./genome_with_gtdb_taxid.txt ./ --KrakenDB --BrackenDB
