@@ -15,7 +15,7 @@ and then run the command `source ~/.profile`
 
 ## metagm_build module
 
-This section describes the process of building databases for different softwares (Kraken, Bracken, Mash, ...) using a list of reference genomes.
+This section describes the process of building databases for different softwares (Kraken, Bracken, Mash, ...) using a list of reference genomes. It also takes care of submitting all the jobs on farm and manage job dependencies.
 
 ![metagm_build_pipeline](img/metagm_build_pipeline.PNG)
 
@@ -96,7 +96,7 @@ The command builds:
 
 ## metagm_classify module
 
-This section describes the process of classifying metagenomics sequencing reads to get both taxonomic and functional profiles.
+This section describes the process of classifying metagenomics sequencing reads to get both taxonomic and functional profiles. It also takes care of submitting all the jobs on farm and manage job dependencies.
 
 ![metagm_classify_pipeline](img/metagm_classify_pipeline.PNG)
 
