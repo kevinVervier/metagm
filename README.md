@@ -120,6 +120,53 @@ head -n -1 tmp.txt > taxo_path_gtdb_bac120_ar122_unique.txt
 #remove temporary file
 rm tmp.txt
 ```
+3. create a Taxonomy tree in Python
+
+```
+#import library
+import pickle # save binary object, like trees
+import sys  # system command library
+sys.path.append('/nfs/team162/kv4/github/metagm') # add the metagm library to your session
+from metagm.phylogeny.TaxonomyTree import TaxonomyTree # class to generate trees
+# this class only needs a list of taxonomic paths and will generate a taxonomy in NCBI format
+tree = TaxonomyTree('taxo_path_gtdb_bac120_ar122_unique.txt')
+# save the tree in NCBI format at the given location
+tree.saveNCBIFormat('taxonomy_bac_ar')
+# also save the tree in a Pickle format (Python binary) for later
+tree.savePickleFormat('/nfs/team162/kv4/bin/gtdb_metadata/taxonomy_bac_ar/taxo.pyc')
+```
+
+## How to add nodes to an existing taxonomic tree
+
+If a tree needs to be updated by adding new nodes, it is not necessary to re-build it from scratch.
+User can provide a Pickle tree and new taxonomic paths:
+
+```
+#import library
+import pickle  # load binary object, like trees
+import csv # read csv files
+import sys  # system command library
+sys.path.append('/nfs/team162/kv4/github/metagm') # add the metagm library to your session
+from metagm.phylogeny.TaxonomyTree import TaxonomyTree # class to generate trees
+
+#load existing tree to add nodes
+with open('taxonomy_bac_ar/taxo.pyc', "rb") as input_file:
+    tree = pickle.load(input_file)
+
+#Here we want to add non bacterial and non archeal nodes (fungi, virus and other eukaryotes)
+extraNodes = '/nfs/team162/kv4/Kraken1019/nonBacterial_taxopath.txt'
+with open(extraNodes) as tsvfile:
+    reader = csv.reader(tsvfile, delimiter='\t')
+    for i, row in enumerate(reader):
+        print(row[0])
+        # add a node if it is new
+        tree.add_node(row[0])
+
+# save the updated tree in NCBI format at the given location
+tree.saveNCBIFormat('taxonomy')
+# also save the tree in a Pickle format (Python binary) for later
+tree.savePickleFormat('taxonomy/taxo.pyc')
+```
 
 # Statistical analysis
 
