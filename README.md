@@ -62,7 +62,7 @@ The following examples illustrate various featuresfrom the `metagm_build.py` scr
 
 #### Quality control + taxonomic assignment on a list of genomes
 
-```
+```bash
 metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./ --QC --taxoAssign
 ```
 
@@ -110,7 +110,7 @@ Kraken software relies on taxonomic information presented in the 'NCBI format' (
 Unfortunately, gtdb does not provide (yet?) its taxonomy in such format. Therefore, we need to build a GTDB-based taxonomy that can be saved in the NCBI format.
 1. download all the gtdb [archeal metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/ar122_metadata.tsv) and [bacterial metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/bac120_metadata.tsv) containing all taxonomic paths for every genome found in the database.
 2. extract unique paths in the metadata files to make the following steps faster
-```
+```bash
 # merge bacterial and archeal metadata
 cat ar122_metadata.tsv bac120_metadata.tsv > bac_ar_metadata.tsv
 # get unique taxonomic paths
@@ -122,7 +122,7 @@ rm tmp.txt
 ```
 3. create a Taxonomy tree in Python
 
-```
+```python
 #import library
 import pickle # save binary object, like trees
 import sys  # system command library
@@ -141,7 +141,7 @@ tree.savePickleFormat('/nfs/team162/kv4/bin/gtdb_metadata/taxonomy_bac_ar/taxo.p
 If a tree needs to be updated by adding new nodes, it is not necessary to re-build it from scratch.
 User can provide a Pickle tree and new taxonomic paths:
 
-```
+```python
 #import library
 import pickle  # load binary object, like trees
 import csv # read csv files
