@@ -107,7 +107,19 @@ Current taxonomic tree build from GTDB metadata is stored here: `/nfs/pathogen00
 ## How to build a tree in NCBI format using gtdb metadata
 
 Kraken software relies on taxonomic information presented in the 'NCBI format' (a pair of `nodes.dmp` and `names.dmp`). 
-Unfortunately, gtdb does not provide (yet?) its taxonomy in such format. Therefore, we downloaded all the gtdb [archeal metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/ar122_metadata.tsv) and [bacterial metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/bac120_metadata.tsv) containing all taxonomic paths for every genome found in the database.
+Unfortunately, gtdb does not provide (yet?) its taxonomy in such format. Therefore, we need to build a GTDB-based taxonomy that can be saved in the NCBI format.
+1. download all the gtdb [archeal metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/ar122_metadata.tsv) and [bacterial metadata](https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/bac120_metadata.tsv) containing all taxonomic paths for every genome found in the database.
+2. extract unique paths in the metadata files to make the following steps faster
+```
+# merge bacterial and archeal metadata
+cat ar122_metadata.tsv bac120_metadata.tsv > bac_ar_metadata.tsv
+# get unique taxonomic paths
+cut -f17 bac_ar_metadata.tsv | sort -u > tmp.txt
+# remove last line that contains header
+head -n -1 tmp.txt > taxo_path_gtdb_bac120_ar122_unique.txt
+#remove temporary file
+rm tmp.txt
+```
 
 # Statistical analysis
 
