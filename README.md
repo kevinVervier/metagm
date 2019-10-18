@@ -76,16 +76,22 @@ The command applies:
 
 #### Kraken/Bracken database on a list of validated genomes
 
-It is possible to skip the quality control and directly create Kraken database if user already checked the genomes. Additionally, the taxonomic assignment step can be ignored if user provides a taxid for each genome (third column in input list). Here, we use the curated genome list generated in the previous [example](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control--taxonomic-assignment-on-a-list-of-genomes)
+It is possible to skip the quality control and directly create Kraken database if user already checked the genomes. Additionally, the taxonomic assignment step can be ignored if user provides a taxid for each genome (third column in input list). Here, we use the curated genome list generated in the previous [example](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control--taxonomic-assignment-on-a-list-of-genomes). 
 
 ```
+#Run on a queue with 'hugemem' (e.g., farm3)
 metagm_build.py ./genome_with_gtdb_taxid.txt ./ --KrakenDB --BrackenDB
 ```
+The command builds:
+1. [Kraken2 database](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#kraken-2-databases) on XYZ genomes using GTDB taxonomy.
+ * generate multiple files described in [Kraken2 manual](http://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#kraken-2-databases)
+2. [Bracken files](https://github.com/jenniferlu717/Bracken#step-1-generate-the-bracken-database-file-databasexmerskmer_distrib).
+ * generate multiple files described in [Bracken manual](https://github.com/jenniferlu717/Bracken#step-1-generate-the-bracken-database-file-databasexmerskmer_distrib)
 
 ### Comments
 
 * You can access all the information in the command help `metagm_build.py -h `
-* Building a Kraken database requires a large memory amount (>100Gb). The function will automatically submit the final `kraken_build` job on `teramem` queue which means users need to run it on farm3 (or farm4/5 when this queue will be available).
+* Building a Kraken database might require a large memory amount (>200Gb). The function will automatically submit the final `kraken_build` job on `hugemem` queue which means users need to run it on farm3 (or farm4/5 when this queue will be available).
 * If neither `--QC`, `--Kraken`, `--Bracken`, or `--Mash` is provided, the `metagm_build.py` is not going to do anything.
 
 ## metagm_classify module
