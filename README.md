@@ -85,7 +85,6 @@ rm -rf ./test
 metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -b 2
 ```
 
-
 #### Kraken/Bracken database on a list of validated genomes
 
 It is possible to skip the quality control and directly create Kraken database if user already checked the genomes. Additionally, the taxonomic assignment step can be ignored if user provides a taxid for each genome (third column in input list). Here, we use the curated genome list generated in the previous [example](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control--taxonomic-assignment-on-a-list-of-genomes). 
@@ -125,10 +124,12 @@ This section describes the process of classifying metagenomics sequencing reads 
 # Taxonomy
 
 ## Taxonomic assignment
-In this section, we describe the process used to assign a given genome to the current taxonomy.
+
+* In this section, we describe the process used to assign a given genome to the current taxonomy.
 As mentioned in the section 'metagm_build module', users have the option to rely on either the [gtdb](https://gtdb.ecogenomic.org/) taxonomy done with `gtdb-tk classify_wf` [function](https://github.com/Ecogenomics/GtdbTk).
 
-Current taxonomic tree build from GTDB metadata is stored here: `/nfs/pathogen005/team162/gtdb_taxonomy` 
+* Current taxonomic tree build from GTDB metadata is stored here: `/nfs/pathogen005/team162/taxonomy` 
+* Non bacterial and non archeal organisms __cannot__ be assigned using _gtdb_ and need to be manually annotated using `/nfs/pathogen005/team162/taxonomy\names.dmp` file
 
 ## How to build a tree in NCBI format using gtdb metadata
 
