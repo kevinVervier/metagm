@@ -92,7 +92,7 @@ It is possible to skip the quality control and directly create Kraken database i
 
 ```
 #Run on a queue with 'hugemem' (e.g., farm3)
-metagm_build.py ./genome_with_gtdb_taxid.txt ./ --KrakenDB --BrackenDB
+metagm_build.py ./genome_with_gtdb_taxid.txt ./test --KrakenDB --BrackenDB
 ```
 The command builds:
 1. [Kraken2 database](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#kraken-2-databases) on XYZ genomes using GTDB taxonomy.
