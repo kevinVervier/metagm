@@ -63,7 +63,7 @@ The following examples illustrate various featuresfrom the `metagm_build.py` scr
 #### Quality control + taxonomic assignment on a list of genomes
 
 ```
-metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./ --QC --taxoAssign
+metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign
 ```
 
 The command applies:
@@ -73,6 +73,18 @@ The command applies:
  * according to `./merge_final/log.txt`, the genomes were filtered because of XYZ
 2. [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) on validated genomes only, using GTDB taxonomy (default).
  * the taxonomic assignment can be found in `./genome_with_gtdb_taxid.txt`
+ 
+ #### Quality control + taxonomic assignment on a list of genomes (faster)
+
+This example achieves the same task than [previously](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control--taxonomic-assignment-on-a-list-of-genomes), except it takes advantage of job parallelization. Better than running jobs on 10 genomes at a time (2 jobs in previous example), we now do batches of 2 genomes (`-b` flag), therefore submitting 7 smaller jobs.
+
+```
+#delete previous example folder
+rm -rf ./test
+# run the faster command
+metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -b 2
+```
+
 
 #### Kraken/Bracken database on a list of validated genomes
 
