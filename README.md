@@ -62,22 +62,30 @@ The following examples illustrate various featuresfrom the `metagm_build.py` scr
 
 #### Quality control + taxonomic assignment on a list of genomes
 
-```bash
+```
 metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./ --QC --taxoAssign
 ```
 
 The command applies:
-1. [Quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on 10 genomes.
+1. [Quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on 13 genomes.
  * according to `./merge_final/ValidatedGenomes.txt`, there is XYZ genomes that passed QC
  * according to `./merge_final/FilteredGenomes.txt`, there is XYZ genomes that failed QC
  * according to `./merge_final/log.txt`, the genomes were filtered because of XYZ
 2. [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) on validated genomes only, using GTDB taxonomy (default).
  * the taxonomic assignment can be found in `./genome_with_gtdb_taxid.txt`
 
+#### Kraken/Bracken database on a list of validated genomes
+
+It is possible to skip the quality control and directly create Kraken database if user already checked the genomes. Additionally, the taxonomic assignment step can be ignored if user provides a taxid for each genome (third column in input list). Here, we use the curated genome list generated in the previous [example](https://github.com/kevinVervier/metagm/blob/master/README.md####kraken/Bracken-database-on-a-list-of-validated-genomes)
+
+```
+metagm_build.py ./genome_with_gtdb_taxid.txt ./ --KrakenDB --BrackenDB
+```
+
 ### Comments
 
 * You can access all the information in the command help `metagm_build.py -h `
-* Building a Kraken database requires a large memory amount (>100Gb). The function will automatically submit the final `kraken_build` job on `teramem` queue which means users need to run it on farm3 (or farm4/5 when available).
+* Building a Kraken database requires a large memory amount (>100Gb). The function will automatically submit the final `kraken_build` job on `teramem` queue which means users need to run it on farm3 (or farm4/5 when this queue will be available).
 * If neither `--QC`, `--Kraken`, `--Bracken`, or `--Mash` is provided, the `metagm_build.py` is not going to do anything.
 
 ## metagm_classify module
