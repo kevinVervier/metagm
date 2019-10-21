@@ -136,10 +136,10 @@ The script `metagm_classify.py` offers software options for classification:
 * `-q`: define to which queue the jobs are submitted (_default: long_)
 * `-m`: define the amount of memory requested for each job (_default: 64_)
 * `--merge`: will automatically merge all the output files from one method in a single table file (_default: true_)
- * for `Kraken`, it relies on the `/nfs/team162/kv4/Kraken2Table.pl` script to generate two merged tables: a raw count and a normalized abundance
- * for `Bracken`, it relies on the [`combine_bracken_outputs.py`](https://github.com/jenniferlu717/Bracken/blob/master/analysis_scripts/combine_bracken_outputs.py) script to generate a single table mixing raw and relative abundance
-  * for `Mash`, it relies on the `/nfs/team162/kv4/bin/parse_mash.R` script to report high-confidence hits for each sample
-  * for `functional` analysis, data will always be merged in tables at different levels (gene families, pathways, GO categories, ...)
+   * for `Kraken`, it relies on the `/nfs/team162/kv4/Kraken2Table.pl` script to generate two merged tables: a raw count and a normalized abundance
+  * for `Bracken`, it relies on the [`combine_bracken_outputs.py`](https://github.com/jenniferlu717/Bracken/blob/master/analysis_scripts/combine_bracken_outputs.py) script to generate a single table mixing raw and relative abundance
+   * for `Mash`, it relies on the `/nfs/team162/kv4/bin/parse_mash.R` script to report high-confidence hits for each sample
+   * for `functional` analysis, data will always be merged in tables at different levels (gene families, pathways, GO categories, ...)
 
 ### Outputs
 
