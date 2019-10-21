@@ -63,7 +63,7 @@ The following examples illustrate various featuresfrom the `metagm_build.py` scr
 #### Quality control + taxonomic assignment on a list of genomes
 
 ```
-metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign
+metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -m 100
 ```
 
 The command applies:
@@ -73,6 +73,7 @@ The command applies:
  * according to `./merge_final/log.txt`, the genomes were filtered because of XYZ
 2. [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) on validated genomes only, using GTDB taxonomy (default).
  * the taxonomic assignment can be found in `./genome_with_gtdb_taxid.txt`
+3. The [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is high in memory requirement (~100Gb). 
  
  #### Quality control + taxonomic assignment on a list of genomes (faster)
 
@@ -82,7 +83,7 @@ This example achieves the same task than [previously](https://github.com/kevinVe
 #delete previous example folder
 rm -rf ./test
 # run the faster command
-metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -b 2
+metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -b 2 -m 100
 ```
 
 #### Kraken/Bracken database on a list of validated genomes
@@ -104,6 +105,7 @@ The command builds:
 * You can access all the information in the command help `metagm_build.py -h `
 * Building a Kraken database might require a large memory amount (>200Gb). The function will automatically submit the final `kraken_build` job on `hugemem` queue which means users need to run it on farm3 (or farm4/5 when this queue will be available).
 * If neither `--QC`, `--Kraken`, `--Bracken`, or `--Mash` is provided, the `metagm_build.py` is not going to do anything.
+* The [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is high in memory requirement (~100Gb).
 
 ## metagm_classify module
 
