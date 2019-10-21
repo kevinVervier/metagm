@@ -162,8 +162,6 @@ metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_
 ### Comments
 * The `--BrackenDB` flag will automatically trigger `--KrakenDB` with the same database, as `Bracken` [requires](https://github.com/jenniferlu717/Bracken#step-2-run-kraken-10-or-kraken-20-and-generate-a-report-file) `Kraken` output files to create its output files.
 
-## Classes
-
 # Taxonomy
 
 ## Taxonomic assignment
@@ -278,6 +276,20 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 
 ### Quality control
 
-## Functional analysis of metagenomes
+### Functional analysis of metagenomes
+
+## Python library classes
+
+This section describes the built-in classes created in the `metagm` library. They can be used to improve further Python script development or add features in an efficient manner.
+
+### `BacterialGenome()` class:
+
+### `GenomeList()` class:
+
+### `Metagenome()` class:
+
+### `MetagenomeList()` class:
+
+### `TaxonomyTree()` class:
 
 # TODO
