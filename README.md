@@ -228,7 +228,6 @@ tree.saveNCBIFormat('taxonomy')
 # also save the tree in a Pickle format (Python binary) for later
 tree.savePickleFormat('taxonomy/taxo.pyc')
 ```
-# Functional analysis of metagenomes
 
 # Statistical analysis
 
@@ -269,5 +268,7 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 ## Other utility functions/scripts
 
 ### Quality control
+
+## Functional analysis of metagenomes
 
 # TODO
