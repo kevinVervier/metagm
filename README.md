@@ -3,7 +3,9 @@
 In this page, we provide examples illustrating the different options offered by the platform.
 
 ## Before starting
-__To use all the scripts described in this page, users need to add__ the following to their `~/.profile` file:
+
+* Currently, __it is preferable to run the scripts on `farm3`__, as there is no large memory queues elsewhere (especially `metagm_build`).
+* __To use all the scripts described in this page, users need to add__ the following to their `~/.profile` file:
 
 ```
 # add the metagm library to your path
