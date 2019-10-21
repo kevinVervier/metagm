@@ -286,6 +286,8 @@ This section describes the built-in classes created in the `metagm` library. The
 This class creates a genome object from a sequence file and stores various information about it:
 * `genomename`: name given to the genome (_default: ``_)
 * `genomefilepath`: location of the sequence file (_default: ``_)
+* `tmpdir`: where temporary results are stored (_default: tmp_)
+* `qc`: if true, will run [quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on this genome (_default: true_) 
 * `seqrecord`: `fasta` sequence efficently stored in python session (_default: none_)
 * `taxid`: known taxonomic ID for this genome (_default: none_)
 * `valid`: whether this genome passed [quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) (_default: none_)
@@ -304,6 +306,24 @@ This class creates a genome object from a sequence file and stores various infor
 * `annotation`: location of an annotation file for this genome (_default: none_)
 * `seq16s`: existing 16S sequence for this genome (_default: none_)
 * `filehash`: location of hash file (_default: none_)
+
+#### Examples
+
+```
+#in python3
+
+#load libraries
+import sys
+sys.path.append('/nfs/team162/kv4/github/metagm')
+from metagm.sequences.BacterialGenome import BacterialGenome
+
+# create a genome using its sequence
+g = BacterialGenome(genomefilepath='/lustre/scratch118/infgen/team162/kv4/working_list_genomes_kraken/GCA_900129655.1_IMG-taxon_2695420967_annotated_assembly_genomic.fna',  genomename='Bacteroides clarus GCF_900129655', taxid='626929')
+
+
+		
+
+```
 
 
 ### `GenomeList()` class:
