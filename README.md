@@ -283,6 +283,28 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 This section describes the built-in classes created in the `metagm` library. They can be used to improve further Python script development or add features in an efficient manner.
 
 ### `BacterialGenome()` class:
+This class creates a genome object from a sequence file and stores various information about it:
+* `genomename`: name given to the genome (_default: ``_)
+* `genomefilepath`: location of the sequence file (_default: ``_)
+* `seqrecord`: `fasta` sequence efficently stored in python session (_default: none_)
+* `taxid`: known taxonomic ID for this genome (_default: none_)
+* `valid`: whether this genome passed [quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) (_default: none_)
+* `VALIDATED_GENOMES`: text file containing genomes that passed QC (_default: ValidatedGenomes.txt_)
+* `FILTERED_GENOMES`: text file containing genomes that failed QC (_default: FilteredGenomes.txt_)
+* `LOG`: text file containing reasons genomes failed QC (_default: log.txt_)
+* `MAX_CONTIGS`: maximum number of contigs to pass QC (_default: 400_)
+* `MAX_SIZE`: maximum assembly size to pass QC (_default: 8000000_)
+* `COMPLETENESS_THRESHOLD`: minimum assembly completeness to pass QC (_default: 90_)
+* `CONTAMINATION_THRESHOLD`: maximum assembly contamination to pass QC (_default: 5_)
+* `QUEUE`: LSF queue to be used when dealing with this genome (_default: long_)
+* `NTHREADS`: number of threads to be used when dealing with this genome (_default: 8_)
+* `MEMORY`: memory (Gb) to be used when dealing with this genome (_default: 8_)
+* `ASSEMBLER`: default assembler to be used (_default: spades_)
+* `DEFAULT_ROARY_CUTOFF`: threshold for Roary operation (_default: 0.99_)
+* `annotation`: location of an annotation file for this genome (_default: none_)
+* `seq16s`: existing 16S sequence for this genome (_default: none_)
+* `filehash`: location of hash file (_default: none_)
+
 
 ### `GenomeList()` class:
 
