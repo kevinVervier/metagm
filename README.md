@@ -83,7 +83,7 @@ This example achieves the same task than [previously](https://github.com/kevinVe
 #delete previous example folder
 rm -rf ./test
 # run the faster command
-metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -b 2 -m 100
+metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -m 100 -b 2
 ```
 
 #### Kraken/Bracken database on a list of validated genomes
