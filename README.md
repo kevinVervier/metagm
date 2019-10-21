@@ -10,8 +10,6 @@ In this page, we provide examples illustrating the different options offered by 
 ```
 # add the metagm library to your path
 export PATH=/nfs/team162/kv4/github/metagm/metagm/wrapper:$PATH
-#add Bracken local install (needed for now as the Pathinf team has not installed it yet)
-export PATH=/nfs/team162/kv4/bin/Bracken/:$PATH
 ```
 and then run the command `source ~/.profile`
 
