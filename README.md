@@ -156,7 +156,7 @@ The following examples illustrate various features from the `metagm_classify.py`
 #### Bracken prediction for a list of metagenomes
 
 ```
-metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline
+metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline -b 2
 ```
 
 ### Comments
