@@ -205,8 +205,12 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 
 # MySQL Knowledge database
 
-This section describes how to log in the lab mySQL database.
-For obvious security reasons, the password is not provided here and needs to be requested to Nick/Hilary.
+* This section describes how to log in the lab mySQL database. 
+* The screenshots refer to the [DbVisualizer](https://www.dbvis.com) software, free to install.
+* The free version gives you access to read-only features (no query).
+* For obvious security reasons, the password is not provided here and needs to be requested to Nick/Hilary.
+1. open the software and in the left margin `Databases`, right-click for `Create Database Connection`
+![dbviz_new_1](img/dbviz_new_connection_1.PNG)
 
 # Miscalleneous
 
