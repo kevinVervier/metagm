@@ -114,12 +114,37 @@ This section describes the process of classifying metagenomics sequencing reads 
 ![metagm_classify_pipeline](img/metagm_classify_pipeline.PNG)
 
 ### Inputs (mandatory)
+There is two mandatory positional arguments for this function:
+* a `metagenomes` list (one-column text file):
+  * __paired-end data__: only provide path without extension, like `/lustre/scratch118/infgen/team162/kv4/healthy/ERR209654`. The script will automatically seek for `/lustre/scratch118/infgen/team162/kv4/healthy/ERR209654_1.fastq.gz` and `/lustre/scratch118/infgen/team162/kv4/healthy/ERR209654_2.fastq.gz`.
+  * __single-end data__: provide whole path to `fastq` files
+  * the script will __automatically detect if data are gzipped__
+* an `output` folder to store all the results produced by the script
 
 ### Options
+The script `metagm_classify.py` offers software options for classification:
+* `-h`: help display
+* `-v`: verbose mode for additional details on each step
+* `--KrakenDB`: path to a Kraken2 database folder (example: `/nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved`)
+* `--BrackenDB`: path to a Kraken2 database folder with Bracken files in it (example: `/nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved`)
+* `--BrackenRank`: taxonomic rank for Bracken output (_default: S_ for species) [options: D,P,C,O,F,G,S]
+* `--MashDB`: path to a `.msh` Mash sketch (example `/nfs/pathogen005/team162/RefSeq94n.msh`)
+* `--functional`: run a [functional characterization](https://github.com/kevinVervier/metagm/blob/master/README.md#functional-analysis-of-metagenomes) of the metagenomes rather than a taxonomic one (_default: false_)
+* `--noMetaPhlan`: skip `MetaPhlan2` step in [functional analysis](https://github.com/kevinVervier/metagm/blob/master/README.md#functional-analysis-of-metagenomes) (_default: false_). will only work if these files already exist.
+* `-b`: define the number of metagenomes to be analyzed in each batch (_default: 10_)
+* `-t`: define the number of threads used in each job (_default: 2_)
+* `-q`: define to which queue the jobs are submitted (_default: long_)
+* `-m`: define the amount of memory requested for each job (_default: 64_)
+* `--merge`: will automatically merge all the output files from one method in a single table file (_default: true_)
+ * for `Kraken`, it relies on the `/nfs/team162/kv4/Kraken2Table.pl` script to generate two merged tables: a raw count and a normalized abundance
+ * for `Bracken`, it relies on the [`combine_bracken_outputs.py`](https://github.com/jenniferlu717/Bracken/blob/master/analysis_scripts/combine_bracken_outputs.py) script to generate a single table mixing raw and relative abundance
+  * for `Mash`, it relies on the `/nfs/team162/kv4/bin/parse_mash.R` script to report high-confidence hits for each sample
+  * for `functional` analysis, data will always be merged in tables at different levels (gene families, pathways, GO categories, ...)
 
 ### Outputs
 
 ### Comments
+* The `--BrackenDB` flag will automatically trigger `--KrakenDB` with the same database, as `Bracken` [requires](https://github.com/jenniferlu717/Bracken#step-2-run-kraken-10-or-kraken-20-and-generate-a-report-file) `Kraken` output files to create its output files.
 
 ## Classes
 
@@ -196,6 +221,7 @@ tree.saveNCBIFormat('taxonomy')
 # also save the tree in a Pickle format (Python binary) for later
 tree.savePickleFormat('taxonomy/taxo.pyc')
 ```
+# Functional analysis of metagenomes
 
 # Statistical analysis
 
