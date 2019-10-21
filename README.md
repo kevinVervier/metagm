@@ -211,6 +211,12 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 * For obvious security reasons, the password is not provided here and needs to be requested to Nick/Hilary.
 1. open the software and in the left margin `Databases`, right-click for `Create Database Connection`
 ![dbviz_new_1](img/dbviz_new_connection_1.PNG)
+2. Select `Use Wizard`, then choose a name for the connection (example: `microbiota_db`), then press `Next`
+![dbviz_new_2](img/dbviz_new_connection_2.PNG)
+3. Select `MySQL` as Database driver, then press `Next`
+![dbviz_new_3](img/dbviz_new_connection_3.PNG)
+4.Fill all the informations as shown in the screenshot (password not included), then press `Finish`
+![dbviz_new_4](img/dbviz_new_connection_4.PNG)
 
 # Miscalleneous
 
