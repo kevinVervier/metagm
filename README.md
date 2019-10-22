@@ -382,7 +382,16 @@ from metagm.sequences.BacterialGenome import BacterialGenome
 # create a genome using its sequence
 g = BacterialGenome(genomefilepath='/lustre/scratch118/infgen/team162/kv4/working_list_genomes_kraken/GCA_900129655.1_IMG-taxon_2695420967_annotated_assembly_genomic.fna',  genomename='Bacteroides clarus GCF_900129655', taxid='626929')
 
+# it will run QC on it first (default)
+# qc=False can be used in the previous command to avoid running QC
 
+# then, asking if the genome passed QC
+g.is_valid()
+# True means the genome passed QC
+
+# then, extract the 16S sequence of this genome (rnammer)
+g.get_16s_sequence()
+print(g.seq16s)
 		
 
 ```
