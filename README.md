@@ -418,27 +418,45 @@ Its components are:
 #in python3
 
 #load libraries
+import csv
 import sys
 sys.path.append('/nfs/team162/kv4/github/metagm')
 from metagm.sequences.BacterialGenome import BacterialGenome
+from metagm.sequences.GenomeList import GenomeList
 
-# create a genome using its sequence
-g = BacterialGenome(genomefilepath='/lustre/scratch118/infgen/team162/kv4/working_list_genomes_kraken/GCA_900129655.1_IMG-taxon_2695420967_annotated_assembly_genomic.fna',  genomename='Bacteroides clarus GCF_900129655', taxid='626929')
+# create list of genomes from an input file
+print('Loading list of genomes...')
+glist = GenomeList(inputfile='/nfs/team162/kv4/bin/test_list_genomes.txt')
+with open(glist.inputfile) as tsvfile:
+	reader = csv.reader(tsvfile, delimiter='\t')
+	for i, row in enumerate(reader):
+		g = BacterialGenome(genomefilepath=row[0], genomename=row[1], qc=False)
+		# append to existing list
+		glist.append(g, checkvalid=False)
+#get list length -->10
+len(glist)
 
-# it will run QC on it first (default)
-# qc=False can be used in the previous command to avoid running QC
+#get name of first genome in list
+glist.genomelist[0].genomename
 
-# then, asking if the genome passed QC
-g.is_valid()
-# True means the genome passed QC
+#get path to third genome in list
+glist.genomelist[3].genomefilepath
 
-# then, extract the 16S sequence of this genome (rnammer)
-g.get_16s_sequence()
-g.seq16s # it is a SeqRecord object
-len(g.seq16s) # one 16S copy
-#get the assocaited 16S fasta sequence
-print(g.seq16s["rRNA_FQWK01000014.1_260-1774_DIR+"].format("fasta"))
-		
+#remove the first genome in the list using its name
+glist.remove(genomeidentifier=glist.genomelist[0].genomename)
+#get list length --> 9
+len(glist)
+
+#get name of first genome in list --> different than previously
+glist.genomelist[0].genomename
+
+#get gtdb taxid for a list of genomes (submit 1 job on long queue, might take some time)
+glist.list_assign_taxo_gtdb()
+# create a 'myTaxids.txt' file with the results and store the results in the list also
+glist.taxidfile
+# get the list of taxids attached to the genomes
+glist.taxidlist
+
 ```
 
 
