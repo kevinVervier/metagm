@@ -402,7 +402,7 @@ print(g.seq16s["rRNA_FQWK01000014.1_260-1774_DIR+"].format("fasta"))
 ### `GenomeList()` class:
 This class creates a object made of multiple [BacterialGenome](https://github.com/kevinVervier/metagm/blob/master/README.md#bacterialgenome-class) and makes it easy to serialize analyses.
 Its components are:
-* `genomelist`: a list of BacterialGenome objects (_default: `list()`_)
+* `genomelist`: a list of BacterialGenome objects (_default: list()_)
 * `taxidlist`: a list of taxids associated with genomes (_default: None_)
 * `taxidfile`: a file where taxids are stored (_default: None_)
 * `genomefilepathlist`: a list of paths where genome assemblies are located (_default: {}_) 
@@ -499,17 +499,14 @@ mg.zippedFlag
 
 ### `MetagenomeList()` class:
 
-This class creates a object made of multiple [Metagenome](https://github.com/kevinVervier/metagm/blob/master/README.md#bacterialgenome-class) and makes it easy to serialize analyses.
+This class creates a object made of multiple [Metagenome](https://github.com/kevinVervier/metagm/blob/master/README.md#metagenome-class) and makes it easy to serialize analyses.
 Its components are:
-* `genomelist`: a list of BacterialGenome objects (_default: `list()`_)
-* `taxidlist`: a list of taxids associated with genomes (_default: None_)
-* `taxidfile`: a file where taxids are stored (_default: None_)
-* `genomefilepathlist`: a list of paths where genome assemblies are located (_default: {}_) 
-* `inputfile`: a text file containing the paths of all genomes (_default: None_)
-* `QUEUE`: LSF queue to be used when dealing with this genome (_default: long_)
-* `NTHREADS`: number of threads to be used when dealing with this genome (_default: 4_)
-* `MEMORY`: memory (Gb) to be used when dealing with this genome (_default: 8_)
-* `TMPDIR`: where temporary results are stored (_default: tmp_)
+* `metagenomelist`: a list of Metagenome objects (_default: list()_)
+* `metaphlanFlag`: Has MetaPhlan2 already been run on these metagenomes? (_default: False_)
+* `brackenrank`: taxonomic rank for Bracken prediction (_default: S for species_)
+* `metaphlanID`: a list of MetaPhlan2 job IDs to manage Humann2 dependencies (_default: None_) 
+* `outputDir`: where output files are stored (_default: tmp_)
+* `brackenOutputList`: list of files created by Bracken. It is used for the merge step (_default: list()_)
 
 #### Examples
 
