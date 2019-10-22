@@ -516,42 +516,31 @@ Its components are:
 #load libraries
 import csv
 import sys
+import os
+import re
 sys.path.append('/nfs/team162/kv4/github/metagm')
-from metagm.sequences.BacterialGenome import BacterialGenome
-from metagm.sequences.GenomeList import GenomeList
+from metagm.sequences.Metagenome import Metagenome
+from metagm.sequences.MetagenomeList import MetagenomeList
 
-# create list of genomes from an input file
-print('Loading list of genomes...')
-glist = GenomeList(inputfile='/nfs/team162/kv4/bin/test_list_genomes.txt')
-with open(glist.inputfile) as tsvfile:
+# create list of metagenomes from an input file
+mglist = MetagenomeList()
+with open('/nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt') as tsvfile:
 	reader = csv.reader(tsvfile, delimiter='\t')
 	for i, row in enumerate(reader):
-		g = BacterialGenome(genomefilepath=row[0], genomename=row[1], qc=False)
-		# append to existing list
-		glist.append(g, checkvalid=False)
-#get list length -->10
-len(glist)
+		# retrieve the paired-end fastq from folder path only
+		files = [f for f in os.listdir(os.path.dirname(row[0])) if re.match(os.path.basename(row[0])+'_[12].fastq.gz$', f)]
+		mg=Metagenome(metagenomename=os.path.basename(row[0]),metafastqfile1=os.path.dirname(row[0])+'/'+files[0], metafastqfile2=os.path.dirname(row[0])+'/'+files[1])
+		# append
+		mglist.append(mg)
 
-#get name of first genome in list
-glist.genomelist[0].genomename
 
-#get path to third genome in list
-glist.genomelist[3].genomefilepath
+#get list length --> 5
+len(mglist)
 
-#remove the first genome in the list using its name
-glist.remove(genomeidentifier=glist.genomelist[0].genomename)
-#get list length --> 9
-len(glist)
+#classify these samples with Kraken (submit jobs only and return the job IDs)
+mglist.classify_kraken('/nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved')
 
-#get name of first genome in list --> different than previously
-glist.genomelist[0].genomename
-
-#get gtdb taxid for a list of genomes (submit 1 job on long queue, might take some time)
-glist.list_assign_taxo_gtdb()
-# create a 'myTaxids.txt' file with the results and store the results in the list also
-glist.taxidfile
-# get the list of taxids attached to the genomes
-glist.taxidlist
+#results are stored in './tmp'
 
 ```
 ### `TaxonomyTree()` class:
