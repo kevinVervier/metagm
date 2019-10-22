@@ -391,9 +391,11 @@ g.is_valid()
 
 # then, extract the 16S sequence of this genome (rnammer)
 g.get_16s_sequence()
-print(g.seq16s)
+g.seq16s # it is a SeqRecord object
+len(g.seq16s) # one 16S copy
+#get the assocaited 16S fasta sequence
+print(g.seq16s["rRNA_FQWK01000014.1_260-1774_DIR+"].format("fasta"))
 		
-
 ```
 
 
