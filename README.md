@@ -170,7 +170,7 @@ metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_
 As mentioned in the section 'metagm_build module', users have the option to rely on either the [gtdb](https://gtdb.ecogenomic.org/) taxonomy done with `gtdb-tk classify_wf` [function](https://github.com/Ecogenomics/GtdbTk).
 
 * Current taxonomic tree build from GTDB metadata is stored here: `/nfs/pathogen005/team162/taxonomy` 
-* Non bacterial and non archeal organisms __cannot__ be assigned using _gtdb_ and need to be manually annotated using `/nfs/pathogen005/team162/taxonomy\names.dmp` file
+* Non bacterial and non archeal organisms __cannot__ be assigned using _gtdb_ and need to be manually annotated using `/nfs/pathogen005/team162/taxonomy/names.dmp` file
 
 ## How to build a tree in NCBI format using gtdb metadata
 
