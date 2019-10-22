@@ -68,9 +68,9 @@ metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --tax
 
 The command applies:
 1. [Quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on 13 genomes.
- * according to `./merge_final/ValidatedGenomes.txt`, there is XYZ genomes that passed QC
- * according to `./merge_final/FilteredGenomes.txt`, there is XYZ genomes that failed QC
- * according to `./merge_final/log.txt`, the genomes were filtered because of XYZ
+ * according to `./merge_final/ValidatedGenomes.txt`, there is 12 genomes that passed QC
+ * according to `./merge_final/FilteredGenomes.txt`, there is 1 genome that failed QC
+ * according to `./merge_final/log.txt`, the genome was filtered because of XYZ
 2. [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) on validated genomes only, using GTDB taxonomy (default).
  * the taxonomic assignment can be found in `./genome_with_gtdb_taxid.txt`
 3. The [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is high in memory requirement (~100Gb). 
@@ -158,6 +158,27 @@ The following examples illustrate various features from the `metagm_classify.py`
 ```
 metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline -b 2
 ```
+
+The command returns:
+1. in `./test_classify_pipeline/Kraken/*.out`, [Kraken2 files](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#sample-report-output-format) on 6 metagenomes.
+	* also contains the two merged tables with all samples from Kraken output: the raw read counts: `./test_classify_pipeline/Kraken/merged_raw.txt` and the normalized abundance`./test_classify_pipeline/Kraken/merged_norm.txt`
+2. in `./test_classify_pipeline/Bracken/*S.bracken`, [Bracken files](https://github.com/jenniferlu717/Bracken#output-kraken-style-bracken-report) on 6 metagenomes at species level (default).
+	* also contains the merged table with all samples `./test_classify_pipeline/Bracken/merged_S.bracken`
+
+#### Bracken prediction for a list of metagenomes at genus level
+
+Very similar command to the previous example, except we introduce the `--BrackenRank` to specify the rank Bracken should use:
+```
+metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline_genus -b 2 --BrackenRank G
+```
+
+The command returns:
+1. in `./test_classify_pipeline_genus/Kraken/*.out`, [Kraken2 files](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#sample-report-output-format) on 6 metagenomes.
+	* also contains the two merged tables with all samples from Kraken output: the raw read counts: `./test_classify_pipeline_genus/Kraken/merged_raw.txt` and the normalized abundance`./test_classify_pipeline_genus/Kraken/merged_norm.txt`
+	* please note that these files hsould be exactly the same that in `./test_classify_pipeline/Kraken/` as the Kraken step considers all ranks
+2. in `./test_classify_pipeline_genus/Bracken/*G.bracken`, [Bracken files](https://github.com/jenniferlu717/Bracken#output-kraken-style-bracken-report) on 6 metagenomes at species level (default).
+	* also contains the merged table with all samples `./test_classify_pipeline_genus/Bracken/merged_G.bracken`
+
 
 ### Comments
 * The `--BrackenDB` flag will automatically trigger `--KrakenDB` with the same database, as `Bracken` [requires](https://github.com/jenniferlu717/Bracken#step-2-run-kraken-10-or-kraken-20-and-generate-a-report-file) `Kraken` output files to create its output files.
