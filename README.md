@@ -461,9 +461,102 @@ glist.taxidlist
 
 
 ### `Metagenome()` class:
+This class stores a metagenome sample:
+Its components are:
+* `metafastqfile1`: a fastq file (_default: None_)
+* `metafastqfile2`: a fastq file, used only if data are paired (_default: None_)
+* `pairedFlag`: are the data paired-end? (_default: False_)
+* `zippedFlag`: are the data zipped? (_default: False_)
+* `krakenReport`: a path to Kraken2 report (_default: None_)
+* `brackenReport`: a path to Bracken report (_default: None_)
+* `mashReport`: a path to Mash report (_default: None_)
+* `metaphlanReport`: a path to MetaPhlan2 report (_default: None_)
+* `QUEUE`: LSF queue to be used when dealing with this genome (_default: long_)
+* `NTHREADS`: number of threads to be used when dealing with this genome (_default: 4_)
+* `MEMORY`: memory (Gb) to be used when dealing with this genome (_default: 8_)
+* `TMPDIR`: where temporary results are stored (_default: tmp_)
+
+#### Examples
+
+```
+#in python3
+
+#load libraries
+import sys
+sys.path.append('/nfs/team162/kv4/github/metagm')
+from metagm.sequences.Metagenome import Metagenome
+
+# create a metagenome object from paired fastq
+mg = Metagenome(metagenomename='ERR2835563', metafastqfile1='/lustre/scratch118/infgen/pathogen/pathpipe/pathogen_prok_external/seq-pipelines/human/gut_metagenome/TRACKING/235/PS.170.S4.5.metagenomic/SLX/ERX2842313/ERR2835563/ERR2835563_1.fastq.gz',metafastqfile2='/lustre/scratch118/infgen/pathogen/pathpipe/pathogen_prok_external/seq-pipelines/human/gut_metagenome/TRACKING/235/PS.170.S4.5.metagenomic/SLX/ERX2842313/ERR2835563/ERR2835563_2.fastq.gz')
+
+# builder automatically detect if data are paired-end
+mg.pairedFlag
+# builder automatically detect if data are zipped
+mg.zippedFlag
+
+
+```
 
 ### `MetagenomeList()` class:
 
+This class creates a object made of multiple [Metagenome](https://github.com/kevinVervier/metagm/blob/master/README.md#bacterialgenome-class) and makes it easy to serialize analyses.
+Its components are:
+* `genomelist`: a list of BacterialGenome objects (_default: `list()`_)
+* `taxidlist`: a list of taxids associated with genomes (_default: None_)
+* `taxidfile`: a file where taxids are stored (_default: None_)
+* `genomefilepathlist`: a list of paths where genome assemblies are located (_default: {}_) 
+* `inputfile`: a text file containing the paths of all genomes (_default: None_)
+* `QUEUE`: LSF queue to be used when dealing with this genome (_default: long_)
+* `NTHREADS`: number of threads to be used when dealing with this genome (_default: 4_)
+* `MEMORY`: memory (Gb) to be used when dealing with this genome (_default: 8_)
+* `TMPDIR`: where temporary results are stored (_default: tmp_)
+
+#### Examples
+
+```
+#in python3
+
+#load libraries
+import csv
+import sys
+sys.path.append('/nfs/team162/kv4/github/metagm')
+from metagm.sequences.BacterialGenome import BacterialGenome
+from metagm.sequences.GenomeList import GenomeList
+
+# create list of genomes from an input file
+print('Loading list of genomes...')
+glist = GenomeList(inputfile='/nfs/team162/kv4/bin/test_list_genomes.txt')
+with open(glist.inputfile) as tsvfile:
+	reader = csv.reader(tsvfile, delimiter='\t')
+	for i, row in enumerate(reader):
+		g = BacterialGenome(genomefilepath=row[0], genomename=row[1], qc=False)
+		# append to existing list
+		glist.append(g, checkvalid=False)
+#get list length -->10
+len(glist)
+
+#get name of first genome in list
+glist.genomelist[0].genomename
+
+#get path to third genome in list
+glist.genomelist[3].genomefilepath
+
+#remove the first genome in the list using its name
+glist.remove(genomeidentifier=glist.genomelist[0].genomename)
+#get list length --> 9
+len(glist)
+
+#get name of first genome in list --> different than previously
+glist.genomelist[0].genomename
+
+#get gtdb taxid for a list of genomes (submit 1 job on long queue, might take some time)
+glist.list_assign_taxo_gtdb()
+# create a 'myTaxids.txt' file with the results and store the results in the list also
+glist.taxidfile
+# get the list of taxids attached to the genomes
+glist.taxidlist
+
+```
 ### `TaxonomyTree()` class:
 
 # TODO
