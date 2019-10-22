@@ -139,7 +139,7 @@ This section describes the process of classifying metagenomics sequencing reads 
 ### Inputs (mandatory)
 There is two mandatory positional arguments for this function:
 * a `metagenomes` list (one-column text file):
-  * __paired-end data__: only provide path without extension, like `/lustre/scratch118/infgen/team162/kv4/healthy/ERR209654`. The script will automatically seek for `/lustre/scratch118/infgen/team162/kv4/healthy/ERR209654_1.fastq.gz` and `/lustre/scratch118/infgen/team162/kv4/healthy/ERR209654_2.fastq.gz`.
+  * __paired-end data__(gzipped): only provide path without extension, like `/lustre/scratch118/infgen/team162/kv4/healthy/ERR209654`. The script will automatically seek for `/lustre/scratch118/infgen/team162/kv4/healthy/ERR209654_1.fastq.gz` and `/lustre/scratch118/infgen/team162/kv4/healthy/ERR209654_2.fastq.gz`.
   * __single-end data__: provide whole path to `fastq` files
   * the script will __automatically detect if data are gzipped__
 * an `output` folder to store all the results produced by the script
