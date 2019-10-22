@@ -400,6 +400,59 @@ print(g.seq16s["rRNA_FQWK01000014.1_260-1774_DIR+"].format("fasta"))
 
 
 ### `GenomeList()` class:
+This class creates a object made of [BacterialGenome]() and stores various information about it:
+* `genomename`: name given to the genome (_default: ``_)
+* `genomefilepath`: location of the sequence file (_default: ``_)
+* `tmpdir`: where temporary results are stored (_default: tmp_)
+* `qc`: if true, will run [quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on this genome (_default: true_) 
+* `seqrecord`: `fasta` sequence efficently stored in python session (_default: none_)
+* `taxid`: known taxonomic ID for this genome (_default: none_)
+* `valid`: whether this genome passed [quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) (_default: none_)
+* `VALIDATED_GENOMES`: text file containing genomes that passed QC (_default: ValidatedGenomes.txt_)
+* `FILTERED_GENOMES`: text file containing genomes that failed QC (_default: FilteredGenomes.txt_)
+* `LOG`: text file containing reasons genomes failed QC (_default: log.txt_)
+* `MAX_CONTIGS`: maximum number of contigs to pass QC (_default: 400_)
+* `MAX_SIZE`: maximum assembly size to pass QC (_default: 8000000_)
+* `COMPLETENESS_THRESHOLD`: minimum assembly completeness to pass QC (_default: 90_)
+* `CONTAMINATION_THRESHOLD`: maximum assembly contamination to pass QC (_default: 5_)
+* `QUEUE`: LSF queue to be used when dealing with this genome (_default: long_)
+* `NTHREADS`: number of threads to be used when dealing with this genome (_default: 8_)
+* `MEMORY`: memory (Gb) to be used when dealing with this genome (_default: 8_)
+* `ASSEMBLER`: default assembler to be used (_default: spades_)
+* `DEFAULT_ROARY_CUTOFF`: threshold for Roary operation (_default: 0.99_)
+* `annotation`: location of an annotation file for this genome (_default: none_)
+* `seq16s`: existing 16S sequence for this genome (_default: none_)
+* `filehash`: location of hash file (_default: none_)
+
+#### Examples
+
+```
+#in python3
+
+#load libraries
+import sys
+sys.path.append('/nfs/team162/kv4/github/metagm')
+from metagm.sequences.BacterialGenome import BacterialGenome
+
+# create a genome using its sequence
+g = BacterialGenome(genomefilepath='/lustre/scratch118/infgen/team162/kv4/working_list_genomes_kraken/GCA_900129655.1_IMG-taxon_2695420967_annotated_assembly_genomic.fna',  genomename='Bacteroides clarus GCF_900129655', taxid='626929')
+
+# it will run QC on it first (default)
+# qc=False can be used in the previous command to avoid running QC
+
+# then, asking if the genome passed QC
+g.is_valid()
+# True means the genome passed QC
+
+# then, extract the 16S sequence of this genome (rnammer)
+g.get_16s_sequence()
+g.seq16s # it is a SeqRecord object
+len(g.seq16s) # one 16S copy
+#get the assocaited 16S fasta sequence
+print(g.seq16s["rRNA_FQWK01000014.1_260-1774_DIR+"].format("fasta"))
+		
+```
+
 
 ### `Metagenome()` class:
 
