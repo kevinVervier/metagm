@@ -63,7 +63,7 @@ The following examples illustrate various features from the `metagm_build.py` sc
 #### Quality control + taxonomic assignment on a list of genomes
 
 ```
-metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -m 100
+metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -m 150
 ```
 
 The command applies:
@@ -73,7 +73,7 @@ The command applies:
  * according to `./merge_final/log.txt`, the genome was filtered because of XYZ
 2. [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) on validated genomes only, using GTDB taxonomy (default).
  * the taxonomic assignment can be found in `./genome_with_gtdb_taxid.txt`
-3. The [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is high in memory requirement (~100Gb). 
+3. The [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is high in memory requirement (~150Gb). 
  
  #### Quality control + taxonomic assignment on a list of genomes (faster)
 
@@ -83,7 +83,7 @@ This example achieves the same task than [previously](https://github.com/kevinVe
 #delete previous example folder
 rm -rf ./test
 # run the faster command
-metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -m 100 -b 2
+metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -m 150 -b 2
 ```
 
 #### Kraken/Bracken database on a list of validated genomes
