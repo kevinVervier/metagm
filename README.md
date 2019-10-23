@@ -375,7 +375,7 @@ This class creates a genome object from a sequence file and stores various infor
 
 #### Examples
 
-```
+```python
 #in python3
 
 #load libraries
@@ -418,7 +418,7 @@ Its components are:
 
 #### Examples
 
-```
+```python
 #in python3
 
 #load libraries
@@ -482,7 +482,7 @@ Its components are:
 
 #### Examples
 
-```
+```python
 #in python3
 
 #load libraries
@@ -514,7 +514,7 @@ Its components are:
 
 #### Examples
 
-```
+```python
 #in python3
 
 #load libraries
