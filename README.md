@@ -547,6 +547,28 @@ mglist.classify_kraken('/nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolve
 #results are stored in './tmp'
 
 ```
-### `TaxonomyTree()` class:
 
+### `TaxonomyTree()` class:
+This class stores a tree structure using the [ETE3 toolkit](http://etetoolkit.org/docs/latest/tutorial/tutorial_trees.html).
+Its components are:
+* `tree`: a ETE3 tree object (_default: Tree()_)
+* `maxtaxid`: largest taxid used in the tree (_default: 1_)
+
+#### Examples
+
+```python
+#in python3
+
+#load libraries
+import pickle
+import csv
+import sys
+sys.path.append('/nfs/team162/kv4/github/metagm')
+from metagm.phylogeny.TaxonomyTree import TaxonomyTree
+
+# create a tree object from a list of 10 paths
+tree = TaxonomyTree('/nfs/team162/kv4/bin/test_list_taxopaths.txt')
+
+
+```
 # TODO
