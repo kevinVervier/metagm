@@ -215,8 +215,9 @@ For this example, Refseq genomes are detected in metagenome samples. Please note
 ```
 metagm_classify.py --MashDB /nfs/pathogen005/team162/RefSeq94n.msh /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline_mash -b 2
 ```
-
 The command returns:
+1. in `./test_classify_pipeline_mash/Mash/*_screen.tab`, [Mash sketch](https://mash.readthedocs.io/en/latest/tutorials.html#screening-a-read-set-for-containment-of-refseq-genomes) on 6 metagenomes.
+2. in `./test_classify_pipeline_mash/Mash/merged_mash.txt`, merged best hits detected with some confidence in metagenomes
 
 #### Functional characterization of a list of metagenomes with Humann2
 
