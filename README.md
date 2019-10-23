@@ -7,7 +7,7 @@ In this page, we provide examples illustrating the different options offered by 
 * Currently, __it is preferable to run the scripts on `farm3`__, as there is no large memory queue elsewhere (especially `metagm_build`).
 * __To use all the scripts described in this page, users need to add__ the following to their `~/.profile` file:
 
-```
+```bash
 # add the metagm library to your path
 export PATH=/nfs/team162/kv4/github/metagm/metagm/wrapper:$PATH
 ```
@@ -62,7 +62,7 @@ The following examples illustrate various features from the `metagm_build.py` sc
 
 #### Quality control + taxonomic assignment on a list of genomes
 
-```
+```bash
 metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --taxoAssign -m 150
 ```
 
@@ -79,7 +79,7 @@ The command applies:
 
 This example achieves the same task than [previously](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control--taxonomic-assignment-on-a-list-of-genomes), except it takes advantage of job parallelization. Better than running jobs on 10 genomes at a time (2 jobs in previous example), we now do batches of 2 genomes (`-b` flag), therefore submitting 7 smaller jobs.
 
-```
+```bash
 #delete previous example folder
 rm -rf ./test
 # run the faster command
@@ -90,7 +90,7 @@ metagm_build.py /nfs/team162/kv4/bin/list_example_pipeline.txt ./test --QC --tax
 
 It is possible to skip the quality control and directly create Kraken database if user already checked the genomes. Additionally, the taxonomic assignment step can be ignored if user provides a taxid for each genome (third column in input list). Here, we use the curated genome list generated in the previous [example](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control--taxonomic-assignment-on-a-list-of-genomes). 
 
-```
+```bash
 #Run on a queue with 'hugemem' (e.g., farm3)
 metagm_build.py ./genome_with_gtdb_taxid.txt ./test --KrakenDB --BrackenDB
 ```
@@ -104,7 +104,7 @@ The command builds:
 
 It is possible to run all the previous steps in one single command: first, genomes are QC'ed, and then validated genomes are assigned taxonomically, finally a Kraken/Bracken database is built.
 
-```
+```bash
 #delete previous example folder
 rm -rf ./test
 #Run on a queue with 'hugemem' (e.g., farm3)
@@ -181,7 +181,7 @@ The following examples illustrate various features from the `metagm_classify.py`
 
 #### Bracken prediction for a list of metagenomes
 
-```
+```bash
 metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline -b 2
 ```
 
@@ -197,7 +197,7 @@ The command returns:
 #### Bracken prediction for a list of metagenomes at genus level
 
 Very similar command to the previous example, except we introduce the `--BrackenRank` to specify the rank Bracken should use:
-```
+```bash
 metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline_genus -b 2 --BrackenRank G
 ```
 
@@ -212,7 +212,7 @@ The command returns:
 
 For this example, Refseq genomes are detected in metagenome samples. Please note that this exercise is not standard and still experimental, so be careful on the way you use the results. Likely, the detected genomes are from abundant organisms too.
 
-```
+```bash
 metagm_classify.py --MashDB /nfs/pathogen005/team162/RefSeq94n.msh /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline_mash -b 2
 ```
 The command returns:
@@ -222,7 +222,7 @@ The command returns:
 #### Functional characterization of a list of metagenomes with Humann2
 
 This pipeline feature relies on 
-```
+```bash
 metagm_classify.py --functional /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline_functional -b 2
 ```
 
