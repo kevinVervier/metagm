@@ -186,10 +186,13 @@ metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_
 ```
 
 The command returns:
-1. in `./test_classify_pipeline/Kraken/*.out`, [Kraken2 files](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#sample-report-output-format) on 6 metagenomes.
-	* also contains the two merged tables with all samples from Kraken output: the raw read counts: `./test_classify_pipeline/Kraken/merged_raw.txt` and the normalized abundance`./test_classify_pipeline/Kraken/merged_norm.txt`
-2. in `./test_classify_pipeline/Bracken/*S.bracken`, [Bracken files](https://github.com/jenniferlu717/Bracken#output-kraken-style-bracken-report) on 6 metagenomes at species level (default).
+1. in `./test_classify_pipeline/Bracken/*S.bracken`, [Bracken files](https://github.com/jenniferlu717/Bracken#output-kraken-style-bracken-report) on 6 metagenomes at species level (default).
 	* also contains the merged table with all samples `./test_classify_pipeline/Bracken/merged_S.bracken`
+2. in `./test_classify_pipeline/Kraken/*.out`, [Kraken2 files](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#sample-report-output-format) on 6 metagenomes.
+	* also contains the two merged tables with all samples from Kraken output:
+		* the raw read counts: `./test_classify_pipeline/Kraken/merged_raw.txt`
+		* the normalized abundance`./test_classify_pipeline/Kraken/merged_norm.txt`
+3. in `./test_classify_pipeline/Kraken/*bracken.out`, [Kraken2 files](https://ccb.jhu.edu/software/kraken2/index.shtml?t=manual#sample-report-output-format) on 6 metagenomes, without unclassified reads.
 
 #### Bracken prediction for a list of metagenomes at genus level
 
