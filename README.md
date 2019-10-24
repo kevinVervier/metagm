@@ -343,8 +343,12 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 ## Other utility functions/scripts
 
 ### Quality control
-This section describes the content of quality control applied to genome assemblies in [metagm_build]()
-
+This section describes the content of quality control applied to genome assemblies in [metagm_build](https://github.com/kevinVervier/metagm/blob/master/README.md#metagm_build-module) module. Here are the different steps with their corresponding default values:
+* the total length of the assembly has to be lower than 8Mbp
+* the total number of contigs has to be lower 400
+* [checkM](https://ecogenomics.github.io/CheckM/) is then run on the assembly if it passed the previous two steps:
+	* more than 90% completeness is required
+	* less than 5% contamination is required
 
 ### Functional analysis of metagenomes
 
