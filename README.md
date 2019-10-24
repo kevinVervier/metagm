@@ -343,6 +343,8 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 ## Other utility functions/scripts
 
 ### Quality control
+This section describes the content of quality control applied to genome assemblies in [metagm_build]()
+
 
 ### Functional analysis of metagenomes
 
