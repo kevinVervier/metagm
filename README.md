@@ -22,7 +22,7 @@ This section describes the process of building databases for different softwares
 ### Inputs (mandatory)
 There is two mandatory positional arguments for this function:
 * a `genomes` list (text file):
-  * __mandatory__ first column contains the absolute paths to genome assemblies (`.fa` or `.fna`) or Sanger lane IDs (e.g., 22335_2#19)
+  * __mandatory__ first column contains the absolute paths to genome assemblies (`.fa` or `.fna`) or Sanger lane IDs (e.g., 13470_2#55)
   * second column contains the genome names (if not provided, the file name will be used)
   * third column contains the taxids (if not provided, a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed) 
 * an `output` folder to store all the files produced by the script
