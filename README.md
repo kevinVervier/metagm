@@ -24,7 +24,7 @@ There is two mandatory positional arguments for this function:
 * a `genomes` list (text file):
   * __mandatory__ first column contains the absolute paths to genome assemblies (`.fa` or `.fna`). 
   	* For internal genomes, please use symlinks path not the pathogen system path. The reason being that all assemblies are named `contigs.fa` in the system and therefore are not unique names.
-  	
+  	* User can get symlinks from `pf assembly -t file -i YOUR_LIST_OF_LANEIDS.txt -l MY_SYMLINK_FOLDER`
   * second column contains the genome names (if not provided, the file name will be used)
   * third column contains the taxids (if not provided, a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed) 
 * an `output` folder to store all the files produced by the script
