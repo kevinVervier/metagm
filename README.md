@@ -22,7 +22,7 @@ This section describes the process of building databases for different softwares
 ### Inputs (mandatory)
 There is two mandatory positional arguments for this function:
 * a `genomes` list (text file):
-  * __mandatory__ first column contains the absolute paths to genome assemblies (`.fa` or `.fna`)
+  * __mandatory__ first column contains the absolute paths to genome assemblies (`.fa` or `.fna`) or Sanger lane IDs (e.g., 22335_2#19)
   * second column contains the genome names (if not provided, the file name will be used)
   * third column contains the taxids (if not provided, a [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step is performed) 
 * an `output` folder to store all the files produced by the script
@@ -419,7 +419,7 @@ Its components are:
 #### Examples
 
 ```python
-#in python3
+#in python3.6
 
 #load libraries
 import csv
@@ -483,7 +483,7 @@ Its components are:
 #### Examples
 
 ```python
-#in python3
+#in python3.6
 
 #load libraries
 import sys
@@ -515,7 +515,7 @@ Its components are:
 #### Examples
 
 ```python
-#in python3
+#in python3.6
 
 #load libraries
 import csv
@@ -557,7 +557,7 @@ Its components are:
 #### Examples
 
 ```python
-#in python3
+#in python3.6
 
 #load libraries
 import pickle
@@ -568,6 +568,18 @@ from metagm.phylogeny.TaxonomyTree import TaxonomyTree
 
 # create a tree object from a list of 10 paths
 tree = TaxonomyTree('/nfs/team162/kv4/bin/test_list_taxopaths.txt')
+
+tree.maxtaxid
+#51 nodes were created
+
+#print the tree in the terminal (ASCII format)
+tree.printAscii()
+
+#save tree in NCBI format
+tree.saveNCBIFormat('./')
+
+#save tree in Pickle format (can be loaded in any Python session)
+tree.savePickleFormat('./taxo.pyc')
 
 
 ```
