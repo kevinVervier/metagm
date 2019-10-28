@@ -18,6 +18,9 @@ and then run the command `source ~/.profile`
 export PYTHONPATH=/nfs/users/nfs_k/kv4/.local/lib/python3.6/site-packages:$PYTHONPATH
 ```
 
+* after that, run `source ~/.profile` to apply the previous changes.
+
+
 ## metagm_build module
 
 This section describes the process of building databases for different softwares (Kraken, Bracken, Mash, ...) using a list of reference genomes. It also takes care of submitting all the jobs on farm and manage job dependencies.
