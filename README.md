@@ -13,6 +13,11 @@ export PATH=/nfs/team162/kv4/github/metagm/metagm/wrapper:$PATH
 ```
 and then run the command `source ~/.profile`
 
+* In case you do not have the Python module named `Bio` locally installed, you need to use my version by adding the following line to your `~./profile`:
+```
+export PYTHONPATH=/nfs/users/nfs_k/kv4/.local/lib/python3.6/site-packages:$PYTHONPATH
+```
+
 ## metagm_build module
 
 This section describes the process of building databases for different softwares (Kraken, Bracken, Mash, ...) using a list of reference genomes. It also takes care of submitting all the jobs on farm and manage job dependencies.
