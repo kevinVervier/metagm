@@ -15,7 +15,7 @@ and then run the command `source ~/.profile`
 
 * In case you do not have the Python module named `Bio` locally installed, you need to use my version by adding the following line to your `~./profile`:
 ```
-export PYTHONPATH=/nfs/users/nfs_k/kv4/.local/lib/python3.6/site-packages:$PYTHONPATH
+export PYTHONPATH=/software/pathogen/external/apps/usr/local/Python-3.6.0/lib/python3.6/site-packages:$PYTHONPATH
 ```
 
 * after that, run `source ~/.profile` to apply the previous changes.
