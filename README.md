@@ -603,3 +603,4 @@ tree.savePickleFormat('./taxo.pyc')
 
 This section includes features that are either under-development, or not implemented yet:
 * use Sanger lane IDs (e.g., 13470_2#55) instead of absolute paths to assemblies
+* improve `metagm_classify.py` data loding step, by using `split` command to generate batch files instead of the existing 'for' loop. IT will also rmeove the extra loop currently used for the last batch.
