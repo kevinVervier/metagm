@@ -18,13 +18,9 @@ and then run the command `source ~/.profile`
 	```
 	alias metagm_env='source /nfs/team162/kv4/bin/metagm_env/bin/activate'
 	```
-	2. Source it
+	2. Source it: `source ~/.profile`
 	3. Run `metagm_env` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
 
-
-
-
-* after that, run `source ~/.profile` to apply the previous changes.
 
 
 ## metagm_build module
