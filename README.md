@@ -322,6 +322,7 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 
 # MySQL Knowledge database
 
+## Connection Setup
 * This section describes how to log in the lab mySQL database. 
 * The screenshots refer to the [DbVisualizer](https://www.dbvis.com) software, free to install.
 * The free version gives you access to read-only features (no query).
@@ -346,6 +347,9 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 
 ![dbviz_new_6](img/dbviz_new_connection_6.PNG)
 
+## Genomes table
+
+All the genome assemblies can be found in `/lustre/scratch118/infgen/team162/kv4/working_list_genomes_kraken/genome_dir`.
 
 
 # Miscalleneous
