@@ -349,7 +349,7 @@ More details are given in the R vignette '.Rmd', also found in this repository.
 
 ## Genomes table
 
-All the genome assemblies can be found in `/lustre/scratch118/infgen/team162/kv4/working_list_genomes_kraken/genome_dir`.
+All the genome assemblies can be found in `/lustre/scratch118/infgen/team162/kv4/working_list_genomes_kraken`.
 
 
 # Miscalleneous
