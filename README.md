@@ -14,15 +14,12 @@ export PATH=/nfs/team162/kv4/github/metagm/metagm/wrapper:$PATH
 and then run the command `source ~/.profile`
 
 * __TEST__:
-	1. Add the following line in your .profile: alias metagm_venv='source /nfs/team162/kv4/bin/env/bin/activate'
+	1. Add the following line in your .profile: alias metagm_venv='source /nfs/team162/kv4/bin/metagm_venv/bin/activate'
 	2. Source it
-	3. Run `metagm_venv` in the terminal  it should slightly change the prompt (venv) in front of it
+	3. Run `metagm_venv` in the terminal it should slightly change the prompt (`metagm_venv`) in front of it
 
 
-* In case you do not have the Python module named `Bio` locally installed, you need to use my version by adding the following line to your `~./profile`:
-```
-export PYTHONPATH=/software/pathogen/external/apps/usr/local/Python-3.6.0/lib/python3.6/site-packages:$PYTHONPATH
-```
+
 
 * after that, run `source ~/.profile` to apply the previous changes.
 
