@@ -45,8 +45,8 @@ The script `metagm_build.py` also offers options in the building database proces
 * `-v`: verbose mode for additional details on each step
 * `--QC`: run [quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on the list of genomes before building any database. If not done, the scirpt assumes that all the genomes have already been cheked.
 * `--taxoAssign`: run [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step on all the genomes. It will automatically be done if Kraken/Bracken databases are built.
-* `--KrakenDB`: build a Kraken2 database using the list of genomes (`/nfs/pathogen005/team162/Kraken1019`)
-* `--BrackenDB`: build a Bracken database using the list of genomes. Requires a Kraken database to exist, and will therefore automatically creates one (`/nfs/pathogen005/team162/Kraken1019`)
+* `--KrakenDB`: build a Kraken2 database using the list of genomes 
+* `--BrackenDB`: build a Bracken database using the list of genomes. Requires a Kraken database to exist, and will therefore automatically creates one 
 * `--MashDB`: create a [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) of all the genomes.
 * `--ncbi`: rely on NCBI taxonomy instead of gtdb (_default: false_)
 * `-b`: define the number of genomes to be analyzed in each batch (_default: 10_)
