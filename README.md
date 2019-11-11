@@ -45,8 +45,8 @@ The script `metagm_build.py` also offers options in the building database proces
 * `-v`: verbose mode for additional details on each step
 * `--QC`: run [quality control](https://github.com/kevinVervier/metagm/blob/master/README.md#quality-control) on the list of genomes before building any database. If not done, the scirpt assumes that all the genomes have already been cheked.
 * `--taxoAssign`: run [taxonomic assignment](https://github.com/kevinVervier/metagm/blob/master/README.md#taxonomic-assignment) step on all the genomes. It will automatically be done if Kraken/Bracken databases are built.
-* `--KrakenDB`: build a Kraken2 database using the list of genomes
-* `--BrackenDB`: build a Bracken database using the list of genomes. Requires a Kraken database to exist, and will therefore automatically creates one.
+* `--KrakenDB`: build a Kraken2 database using the list of genomes (`/nfs/pathogen005/team162/Kraken1019`)
+* `--BrackenDB`: build a Bracken database using the list of genomes. Requires a Kraken database to exist, and will therefore automatically creates one (`/nfs/pathogen005/team162/Kraken1019`)
 * `--MashDB`: create a [Mash sketch](https://mash.readthedocs.io/en/latest/sketches.html) of all the genomes.
 * `--ncbi`: rely on NCBI taxonomy instead of gtdb (_default: false_)
 * `-b`: define the number of genomes to be analyzed in each batch (_default: 10_)
@@ -160,8 +160,8 @@ There is two mandatory positional arguments for this function:
 The script `metagm_classify.py` offers software options for classification:
 * `-h`: help display
 * `-v`: verbose mode for additional details on each step
-* `--KrakenDB`: path to a Kraken2 database folder (example: `/nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved`)
-* `--BrackenDB`: path to a Kraken2 database folder with Bracken files in it (example: `/nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved`)
+* `--KrakenDB`: path to a Kraken2 database folder (example: `/nfs/pathogen005/team162/Kraken1019`)
+* `--BrackenDB`: path to a Kraken2 database folder with Bracken files in it (example: `/nfs/pathogen005/team162/Kraken1019`)
 * `--BrackenRank`: taxonomic rank for Bracken output (_default: S_ for species) [options: D,P,C,O,F,G,S]
 * `--MashDB`: path to a `.msh` Mash sketch (example `/nfs/pathogen005/team162/RefSeq94n.msh`)
 * `--functional`: run a [functional characterization](https://github.com/kevinVervier/metagm/blob/master/README.md#functional-analysis-of-metagenomes) of the metagenomes rather than a taxonomic one (_default: false_)
