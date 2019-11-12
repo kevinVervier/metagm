@@ -372,6 +372,13 @@ If you want to run PanPhlan tool for a specific species and get strain-level res
 If they do, we already have them downloaded in `/lustre/scratch118/infgen/team162/ys4/panphlan/panphlan_db`.
 If not, you could build your own folowwing this [tutorial](https://bitbucket.org/CibioCM/panphlan/wiki/panphlan_pangenome_generation).
 
+### Extract 16S for a list of assemblies
+There is a wrapper script for [rnammer]() found in `/nfs/team162/kv4/bin/run_rnammer.sh`.
+It takes a list of paths to assembly in a text file as well as a output directory to store the results.
+Example:
+```
+sh /nfs/team162/kv4/bin/run_rnammer.sh /nfs/team162/kv4/bin/test_rnammer.txt ./16S_extract/
+```
 
 ## Python library classes
 
