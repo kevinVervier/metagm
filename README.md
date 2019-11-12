@@ -2,6 +2,9 @@
 
 In this page, we provide examples illustrating the different options offered by the platform.
 
+## How to cite
+TODO
+
 ## Before starting
 
 * Currently, __it is preferable to run the scripts on `farm3`__, as there is no large memory queue elsewhere (especially `metagm_build`).
