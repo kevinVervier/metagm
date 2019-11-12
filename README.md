@@ -366,6 +366,13 @@ This section describes the content of quality control applied to genome assembli
 
 ### Functional analysis of metagenomes
 
+### Strain-level analysis using PanPhlan
+
+If you want to run PanPhlan tool for a specific species and get strain-level resolution, you might want to check if they provide a database for this species [here](https://bitbucket.org/CibioCM/panphlan/wiki/Pangenome%20databases).
+If they do, we already have them downloaded in `/lustre/scratch118/infgen/team162/ys4/panphlan/panphlan_db`.
+If not, you could build your own folowwing this [tutorial](https://bitbucket.org/CibioCM/panphlan/wiki/panphlan_pangenome_generation).
+
+
 ## Python library classes
 
 This section describes the built-in classes created in the `metagm` library. They can be used to improve further Python script development or add features in an efficient manner.
