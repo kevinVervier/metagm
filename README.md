@@ -14,15 +14,15 @@ TODO
 # add the metagm library to your path
 export PATH=/nfs/team162/kv4/github/metagm/metagm/wrapper:$PATH
 ```
-and then run the command `source ~/.profile`
-
-* __TEST__:
-	1. Add the following line in your .profile: 
+Then:
+	1. Add the following line in your `~/.profile`: 
 	```
 	alias metagm_env='source /nfs/team162/kv4/bin/metagm_env/bin/activate'
 	```
 	2. Source it: `source ~/.profile`
 	3. Run `metagm_env` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
+	
+Note: to levea the virtual environment, type `deactivate`
 
 
 
