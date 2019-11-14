@@ -197,7 +197,7 @@ The following examples illustrate various features from the `metagm_classify.py`
 #### Bracken prediction for a list of metagenomes
 
 ```bash
-metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline -b 2
+metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken1019 /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline -b 2
 ```
 
 The command returns:
@@ -213,7 +213,7 @@ The command returns:
 
 Very similar command to the previous example, except we introduce the `--BrackenRank` to specify the rank Bracken should use:
 ```bash
-metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken0419_kraken2_taxo_resolved /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline_genus -b 2 --BrackenRank G
+metagm_classify.py --BrackenDB /nfs/pathogen005/team162/Kraken1019 /nfs/team162/kv4/bin/test_list_metagenomes_bangladesh.txt ./test_classify_pipeline_genus -b 2 --BrackenRank G
 ```
 
 The command returns:
