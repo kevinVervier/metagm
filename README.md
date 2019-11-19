@@ -190,6 +190,14 @@ The `output` folder contains a directory for each task that is performed:
 ### Comments
 * The `--BrackenDB` flag will automatically trigger `--KrakenDB` with the same database, as `Bracken` [requires](https://github.com/jenniferlu717/Bracken#step-2-run-kraken-10-or-kraken-20-and-generate-a-report-file) `Kraken` output files to create its output files.
 
+### Available Kraken/Bracken databases:
+	* __current__ Kraken1019: using the Mgnify curated collection (31,555 genomes) from bacteria and archea.  The taxon IDs have been assigned using GTDB.
+	* __current__ Kraken1019_with_nonBact_nonArch: same as Kraken1019, but also contains 131 gut-associated fungi, small eukaryota and other parasites.
+        * Kraken0419_kraken2_taxo_resolved: build with Kraken2, using the HBC + BGI collections and ~300 public genomes and the taxon IDs have been manually curated using GTDB rather than the default NCBI.
+        * InternalKraken_OCT2017: HBC + public genomes (@Sam), relied on the old QC for reference genomes
+        * RefSeq94n.msh: Mash sketch of the entire RefSeq (version 94)
+        * taxonomy/ : custom taxonomy built from GTDB for Bacteria and Archea, and saved in a NCBI format for Kraken. It also contains few viruses and eukaryotes.
+
 ### Examples
 
 The following examples illustrate various features from the `metagm_classify.py` script. Depending how busy _farm_ is, these examples can take some time to run.
