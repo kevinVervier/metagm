@@ -1,5 +1,5 @@
 ---
-title: "Functional IBS paired"
+title: "Functional analysis"
 author: "Kevin Vervier"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
