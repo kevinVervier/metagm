@@ -1,0 +1,1158 @@
+---
+title: 'Response to antiPD1 and microbiome: meta-analysis (update November 2019) - best practice'
+author: "Kevin Vervier"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+```
+
+```{r}
+#General info
+library(vegan)
+library(zCompositions)
+library(phyloseq)
+library(Maaslin2)
+library(knitr)
+library(ggpubr)
+
+mypalette<-c('darkviolet','darkgreen','dodgerblue','darkorange','red','gold')
+set.seed(1)
+```
+
+This work relies on a new Kraken database (Kraken0419), and uses better normalization.
+
+
+```{r}
+# Please insert the name of the Kraken output file (raw/normalized)
+MYDATAFILE = '../data/merged_S.bracken'
+
+# Please insert the name of the metadata file (first column should be lane ID, second column should be group ID)
+MYMETADATAFILE = '../data/metadata_all_metagenomes.txt'
+```
+
+
+
+```{r}
+# read metadata
+metadata = read.delim(MYMETADATAFILE,header=FALSE)
+
+metadata = metadata[,c(3,2,4)]
+colnames(metadata) = c('sangerID','study','group')
+metadata$group = as.character(metadata$group)
+metadata$group[which(is.na(metadata$group))] = 'missing'
+
+# read abundance info
+dat = read.delim(MYDATAFILE,header = TRUE,stringsAsFactors=FALSE,check.names = FALSE)
+
+# change columns name to only keep the Sanger lane ID
+colnames(dat) = gsub(x = colnames(dat),pattern = '_S.bracken',replacement = '')
+
+
+```
+
+```{r}
+tmp = dat[,c(1,grep(colnames(dat),pattern = '_num'))]
+row.names(tmp) = tmp$name
+colnames(tmp) = gsub(x = colnames(tmp),pattern = '_num',replacement = '')
+
+tmp = t(tmp[,-1])
+tmp = tmp[order(row.names(tmp)),]
+metadata = metadata[order(metadata$sangerID),]
+
+
+metadata = metadata[which(metadata$sangerID %in% intersect(row.names(tmp),metadata$sangerID)),]
+tmp = tmp[which(row.names(tmp) %in% intersect(row.names(tmp),metadata$sangerID)),]
+
+```
+
+```{r}
+row.names(metadata) = row.names(tmp)
+
+sub.meta = metadata
+sub.tmp = tmp[sub.meta$sangerID,]
+ps <- phyloseq(sample_data(sub.meta),
+                 otu_table(sub.tmp, taxa_are_rows = FALSE))
+```
+
+Diversity and richness measurements:
+
+Lower Shannon and Simpson diversity in Non-responders compared to responders and healthy
+
+```{r}
+my_comparisons <- list( c(unique(ps@sam_data$group)[2],unique(ps@sam_data$group)[1]),c(unique(ps@sam_data$group)[3],unique(ps@sam_data$group)[1]),
+                        c(unique(ps@sam_data$group)[2],unique(ps@sam_data$group)[3]) )
+richness = estimate_richness(ps)
+
+
+
+df = data.frame('group'=ps@sam_data$group,'richness'=richness$Observed)
+
+p <- ggboxplot(df, x = "group", y = names(df)[2],
+                color = "group", palette =c("#00AFBB", "#E7B800", "#FC4E07",'grey30'),
+                add = "jitter")
+p + stat_compare_means(comparisons = my_comparisons,paired=FALSE) + ylab('N Observed')
+
+df = data.frame('group'=ps@sam_data$group,'richness'=richness$Chao1)
+
+p <- ggboxplot(df, x = "group", y = names(df)[2],
+                color = "group", palette =c("#00AFBB", "#E7B800", "#FC4E07",'grey30'),
+                add = "jitter")
+p + stat_compare_means(comparisons = my_comparisons,paired=FALSE) + ylab('Chao1 diversity')
+
+df = data.frame('group'=ps@sam_data$group,'richness'=richness$Shannon)
+
+p <- ggboxplot(df, x = "group", y = names(df)[2],
+                color = "group", palette =c("#00AFBB", "#E7B800", "#FC4E07",'grey30'),
+                add = "jitter")
+p + stat_compare_means(comparisons = my_comparisons,paired=FALSE) + ylab('Shannon diversity')
+
+
+df = data.frame('group'=ps@sam_data$group,'richness'=richness$Simpson)
+
+p <- ggboxplot(df, x = "group", y = names(df)[2],
+                color = "group", palette =c("#00AFBB", "#E7B800", "#FC4E07",'grey30'),
+                add = "jitter")
+p + stat_compare_means(comparisons = my_comparisons,paired=FALSE) + ylab('Simpson diversity')
+
+
+```
+
+# Transformation to CoDA
+```{r}
+sum(ps@otu_table == 0)
+100*sum(ps@otu_table == 0)/length(ps@otu_table)
+
+prevalence = 100*apply(ps@otu_table,2,function(x) sum(x>0)/length(x))
+total.read.count = apply(ps@otu_table,2,sum)
+
+plot(total.read.count,prevalence,pch=16,log='x',ylim=c(0,100))
+
+```
+
+## Filter rare taxa -->NONE
+```{r}
+#  Define prevalence threshold as 10% of total samples
+prevalenceThreshold = 0.1 * nsamples(ps)
+prevalenceThreshold
+
+# Execute prevalence filter, using `prune_taxa()` function
+keepTaxa = names(prevalence)[(prevalence >= prevalenceThreshold)]
+ps1 = prune_taxa(keepTaxa, ps)
+```
+
+## Estimate zeros
+```{r}
+d.czm <- cmultRepl(ps1@otu_table,  label=0, method="CZM")
+d.clr <- t(apply(d.czm, 1, function(x){log(x) - mean(log(x))}))
+ps2 = ps1
+ps2@otu_table = otu_table(d.clr, taxa_are_rows = FALSE)
+
+
+dis<-dist(as.matrix(ps2@otu_table),method='euclidean')
+# equivalent to Aitchinson distance: Eucidean on CLR profiles
+
+mod<-betadisper(dis,ps2@sam_data$study)
+plot(mod)
+res <- permutest(mod, pairwise = TRUE, permutations = 1000)
+res
+
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('CLR data colored by study (PERMANOVA p = ',res$tab[1,6],')',sep=''), 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nsamples(ps2)),label=FALSE ) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = unique(ps2@sam_data$study),fill =mypalette)
+
+
+
+mod<-betadisper(dis,ps2@sam_data$group)
+plot(mod)
+res <- permutest(mod, pairwise = TRUE, permutations = 1000)
+res
+
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('CLR data colored by status (PERMANOVA p = ',res$tab[1,6],')',sep=''), 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nsamples(ps2)),label=FALSE ) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = unique(ps2@sam_data$group),fill =mypalette)
+
+```
+
+## Machine learning on the two clusters
+Here we run random forest to understand potential differences between the two clusters:
+```{r}
+idx = which(ps2@sam_data$group %in% c('R','NR'))
+ library(randomForest)
+  Y = factor(ps2@sam_data$group[idx])
+  
+  table(Y)
+  
+  m <- randomForest(x = as.matrix(ps2@otu_table)[idx,],y=Y,ntree = 1000,importance = TRUE,proximity = TRUE)
+  
+  cat('\n')
+  print(kable(m$confusion))
+  cat('\n')
+  
+  cat('\n')
+  MDSplot(m, factor(Y), k=2,palette = c('darkorange','dodgerblue'))
+  cat('\n')
+  
+ sum(Y==m$predicted)/length(Y) # 0.6
+ importance(m,type=2)[order(importance(m,type=2),decreasing=TRUE),] # Gini
+ sorted_markers = names(importance(m,type=2)[order(importance(m,type=2),decreasing=TRUE),])
+ cat(sorted_markers[1:20])
+ 
+ 
+ 
+ m.with.study <- randomForest(x = cbind(as.matrix(ps2@otu_table)[idx,],ps2@sam_data$study[idx]),y=Y,ntree = 1000,importance = TRUE,proximity = TRUE)
+ 
+ cat('\n')
+  print(kable(m.with.study$confusion))
+  cat('\n')
+  sum(Y==m.with.study$predicted)/length(Y) # 0.61
+  
+  
+  library(glmnet)
+  y.bin = ifelse(Y=='R',yes=1,no=0)
+  enet.m = cv.glmnet(x=as.matrix(ps2@otu_table)[idx,],y = y.bin,type.measure="class",family="binomial")
+  plot(enet.m)
+```
+
+
+# Load data
+The data used for this analysis have been process before September, 4th 2018, using the 2017 Kraken DB.
+
+## Load Kraken runs
+```{r}
+library(knitr)
+dat = read.delim('../output/normalized_kraken_220319.tsv',
+                 header=FALSE,stringsAsFactors=FALSE)
+dim(dat) # 121
+
+colnames(dat) = c('taxid','rank','name',dat[1,-c(1,ncol(dat)-1,ncol(dat))])
+dat = dat[-1,]
+
+colnames(dat) = gsub(pattern = '.*/',replacement = '',x=colnames(dat))
+
+# Quick fix on Oryza sativa:
+dat$name[which(dat$name == 'Oryza sativa')] = 'Enterobacter cloacae'
+idx = which(dat$name == 'Enterobacter cloacae')
+if(length(idx)>1){
+  dat[idx[1],] = c(dat[idx[1],1:3],unlist(apply(dat[idx,-c(1:3)],2,function(x) sum(as.numeric(x)))))
+  dat = dat[-idx[2:length(idx)],]
+}
+
+dat$name[which(dat$name == 'Camelus dromedaries')] = 'Escherichia coli'
+idx = which(dat$name == 'Escherichia coli')
+if(length(idx)>1){
+  dat[idx[1],] = c(dat[idx[1],1:3],unlist(apply(dat[idx,-c(1:3)],2,function(x) sum(as.numeric(x)))))
+  dat = dat[-idx[2:length(idx)],]
+}
+
+```
+
+## Metadata mapping
+
+```{r}
+
+library(openxlsx)
+metadata = openxlsx::read.xlsx('../MelResist Sanger Sample Log 24MAR19_Internal.xlsx', startRow = 5)
+
+# remove space in seqID
+metadata[,ncol(metadata)] = gsub(pattern = ' ',replacement = '',metadata[,ncol(metadata)])
+
+idx = match(gsub(pattern = '.out',replacement = '',colnames(dat)),metadata[,ncol(metadata)])
+colnames(dat)[which(is.na(idx))]
+
+# remove the first 3 columns (taxa info)
+groups = unlist(metadata[idx,5])
+groups = groups[-c(1:3)]
+
+groups[grep('Baseline',groups)] = 'Baseline'
+groups[grep('Discontinued',groups)] = 'Discontinued'
+groups[grep('Exceptional',groups)] = 'Exceptional'
+
+# 21469_5#... (healthy)
+groups[is.na(groups)] = 'Healthy'
+
+table(groups)
+# combine baseline and Pre-C1
+groups[grep('Pre C1',groups)] = 'Baseline'
+# keep sequence names
+names(groups) = unlist(metadata[idx,ncol(metadata)])[-c(1:3)]
+
+table(groups)
+# response to treatment
+response = openxlsx::read.xlsx('../patient outcome melresist-RR_240319.xlsx')
+response$`sanger.baseline/pre-c1` = gsub(pattern = ' ',replacement = '',response$`sanger.baseline/pre-c1`)
+
+idx = match(names(groups),response$`sanger.baseline/pre-c1`)
+response.label = rep(NA,length(groups))
+response.label[which(!is.na(idx))] = response$response[idx[which(!is.na(idx))]]
+
+table(response.label)
+response.label[grep('Responder',response.label)] = 'Responder'
+table(response.label)
+names(response.label) = names(groups)
+
+
+Y = response.label
+names(Y) = names(groups)
+#keep only baseline
+idx = which(groups == 'Baseline' & Y %in% c('Responder','Non responder'))
+Y = Y[idx]
+
+microbio = as.matrix(dat[which(dat$rank == rank),-c(1:3)],ncol=ncol(dat)-3)
+mode(microbio) = 'numeric'
+  
+microbio.case = microbio[,which(Y=='Non responder')]
+microbio.control = microbio[,which(Y=='Responder')]
+  
+# keep only abundant bacteria 
+prev = apply(microbio,1,function(x) sum(as.numeric(x) > thresh))
+names(prev) = dat[which(dat$rank == rank),3]
+idx = which(prev < ncol(microbio)/3)
+
+microbio.case = microbio.case[-idx,]
+microbio.control = microbio.control[-idx,]
+
+taxon = dat[which(dat$rank == rank),1:3]
+if(length(idx) > 0) taxon = taxon[-idx,]
+
+x.norm = NULL
+x.norm.case = NULL
+set.seed(42)
+for(i in 1:nrow(microbio.case)){
+  tmp.x = as.numeric(microbio.control[i,])
+  if(length(idx <- which(tmp.x == 0)) > 0 & length(idx <- which(tmp.x == 0)) < length(tmp.x)){
+    tmp.x[idx] = runif(n = length(idx),min = 0,max = min(as.numeric(tmp.x[-idx])))
+  }else{
+    if(length(idx <- which(tmp.x == 0)) == length(tmp.x)){
+      tmp.x[idx] = runif(n = length(idx),min = 0,max = 10^-9)
+    }
+  }
+  tmp = rank(tmp.x)/length(tmp.x)
+  x.norm = rbind(x.norm,tmp)
+  
+  tmp2.x = as.numeric(microbio.case[i,])
+  if(length(idx <- which(tmp2.x == 0)) > 0 & length(idx <- which(tmp2.x == 0)) < length(tmp2.x)){
+    tmp2.x[idx] = runif(n = length(idx),min = 0,max = min(as.numeric(tmp2.x[-idx])))
+  }else{
+    if(length(idx <- which(tmp2.x == 0)) == length(tmp2.x)){
+      tmp2.x[idx] = runif(n = length(idx),min = 0,max = 10^-9)
+    }
+  }
+  x.norm.case = rbind(x.norm.case,ecdf(tmp.x)(tmp2.x))
+}
+colnames(x.norm.case) = colnames(microbio.case)
+
+row.names(x.norm) = taxon[,3]
+row.names(x.norm.case) = taxon[,3]
+
+X.norm.ctrl[['melresist']] = x.norm
+X.norm.case[['melresist']] = x.norm.case
+
+row.names(microbio.control) = taxon[,3]
+row.names(microbio.case) = taxon[,3]
+X.raw.ctrl[['melresist']] = microbio.control
+X.raw.case[['melresist']] = microbio.case
+
+
+```
+
+
+# Gajewski 2018 data: 
+```{r}
+kraken = read.delim('../data_science18/gajewski2018/merged_norm.txt',skip=1,header=FALSE)
+con <- file("../data_science18/gajewski2018/merged_norm.txt","r")
+header <- readLines(con,n=1)
+close(con)
+
+header = unlist(strsplit(header,split = '\t'))[-1]
+colnames(kraken) = c('taxid','rank','name',gsub(pattern = '.out',replacement = '',gsub(pattern = '.*/',replacement = '',x=header)))
+
+# Quick fix on Oryza sativa:
+kraken$name[which(kraken$name == 'Oryza sativa')] = 'Enterobacter cloacae'
+idx = which(kraken$name == 'Enterobacter cloacae')
+if(length(idx)>1){
+  kraken[idx[1],] = c(kraken[idx[1],1:3],unlist(apply(kraken[idx,-c(1:3)],2,function(x) sum(as.numeric(x)))))
+  kraken = kraken[-idx[2:length(idx)],]
+}
+
+kraken$name[which(kraken$name == 'Camelus dromedaries')] = 'Escherichia coli'
+idx = which(kraken$name == 'Escherichia coli')
+if(length(idx)>1){
+  kraken[idx[1],] = c(kraken[idx[1],1:3],unlist(apply(kraken[idx,-c(1:3)],2,function(x) sum(as.numeric(x)))))
+  kraken = kraken[-idx[2:length(idx)],]
+}
+# load metadata with responder status
+metadata = read.table('../data_science18/gajewski2018/PRJNA399742_sampleID.txt',sep='\t',header=TRUE)
+metadata = metadata[which(metadata$Run %in% colnames(kraken)),]
+
+response = read.csv('../data_science18/gajewski2018/human_16S.sampleinfo.csv')
+
+metadata = cbind(metadata,response[match(metadata$subject_id,response$Sample),2:4])
+table(metadata$Response)
+
+# normalization
+
+prev = apply(kraken[which(kraken$rank == rank),-c(1:3)],1,function(x) sum(as.numeric(x) > thresh))
+names(prev) = kraken[which(kraken$rank == rank),3]
+idx = which(prev < ncol(kraken)/3)
+
+microbio = kraken[which(kraken$rank == rank),-c(1:3)]
+if(length(idx) > 0){
+  microbio = microbio[-idx,]
+  prev = prev[-idx]
+}
+
+taxon = kraken[which(kraken$rank == rank),1:3]
+if(length(idx) > 0) taxon = taxon[-idx,]
+
+
+# create normalized object for responders
+set.seed(42)
+x.ctrl = microbio[,as.character(metadata$Run[which(metadata$Response == 'Responder')])]
+x.case = microbio[,as.character(metadata$Run[which(metadata$Response != 'Responder')])]
+#replace zero by random low values
+idx = which(x.ctrl == 0,arr.ind = TRUE)
+x.norm = NULL
+x.norm.case = NULL
+for(i in 1:nrow(x.ctrl)){
+  tmp.x = as.numeric(x.ctrl[i,])
+  if(length(idx <- which(tmp.x == 0)) > 0 & length(idx <- which(tmp.x == 0)) < length(tmp.x)){
+    tmp.x[idx] = runif(n = length(idx),min = 0,max = min(as.numeric(tmp.x[-idx])))
+  }else{
+    if(length(idx <- which(tmp.x == 0)) == length(tmp.x)){
+      tmp.x[idx] = runif(n = length(idx),min = 0,max = 10^-9)
+    }
+  }
+  tmp = rank(tmp.x)/length(tmp.x)
+  x.norm = rbind(x.norm,tmp)
+  
+  tmp2.x = as.numeric(x.case[i,])
+  if(length(idx <- which(tmp2.x == 0)) > 0 & length(idx <- which(tmp2.x == 0)) < length(tmp2.x)){
+    tmp2.x[idx] = runif(n = length(idx),min = 0,max = min(as.numeric(tmp2.x[-idx])))
+  }else{
+    if(length(idx <- which(tmp2.x == 0)) == length(tmp2.x)){
+      tmp2.x[idx] = runif(n = length(idx),min = 0,max = 10^-9)
+    }
+  }
+  x.norm.case = rbind(x.norm.case,ecdf(tmp.x)(tmp2.x))
+}
+row.names(x.norm) = taxon[,3]
+row.names(x.norm.case) = taxon[,3]
+
+X.norm.ctrl[['gajewski']] = x.norm
+X.norm.case[['gajewski']] = x.norm.case
+
+row.names(x.ctrl) = taxon[,3]
+row.names(x.case) = taxon[,3]
+X.raw.ctrl[['gajewski']] = x.ctrl
+X.raw.case[['gajewski']] = x.case
+```
+
+# Wargo 2018 data
+
+```{r}
+kraken = read.delim('../data_science18/wargo2018/merged_norm.txt',skip=1,header=FALSE)
+con <- file("../data_science18/wargo2018/merged_norm.txt","r")
+header <- readLines(con,n=1)
+close(con)
+
+header = unlist(strsplit(header,split = '\t'))[-1]
+colnames(kraken) = c('taxid','rank','name',gsub(pattern = '.out',replacement = '',gsub(pattern = '.*/',replacement = '',x=header)))
+
+# Quick fix on Oryza sativa:
+kraken$name[which(kraken$name == 'Oryza sativa')] = 'Enterobacter cloacae'
+idx = which(kraken$name == 'Enterobacter cloacae')
+if(length(idx)>1){
+  kraken[idx[1],] = c(kraken[idx[1],1:3],unlist(apply(kraken[idx,-c(1:3)],2,function(x) sum(as.numeric(x)))))
+  kraken = kraken[-idx[2:length(idx)],]
+}
+
+kraken$name[which(kraken$name == 'Camelus dromedaries')] = 'Escherichia coli'
+idx = which(kraken$name == 'Escherichia coli')
+if(length(idx)>1){
+  kraken[idx[1],] = c(kraken[idx[1],1:3],unlist(apply(kraken[idx,-c(1:3)],2,function(x) sum(as.numeric(x)))))
+  kraken = kraken[-idx[2:length(idx)],]
+}
+# load metadata with responder status
+metadata = read.table('../data_science18/wargo2018/metadata.tsv',sep='\t',header=TRUE)
+metadata = metadata[which(metadata$RUNID %in% colnames(kraken)),]
+
+response = metadata$phenotype
+
+table(response)
+
+# normalization
+
+prev = apply(kraken[which(kraken$rank == rank),-c(1:3)],1,function(x) sum(as.numeric(x) > thresh))
+names(prev) = kraken[which(kraken$rank == rank),3]
+idx = which(prev < ncol(kraken)/3)
+
+microbio = kraken[which(kraken$rank == rank),-c(1:3)]
+if(length(idx) > 0){
+  microbio = microbio[-idx,]
+  prev = prev[-idx]
+}
+
+taxon = kraken[which(kraken$rank == rank),1:3]
+if(length(idx) > 0) taxon = taxon[-idx,]
+
+
+# create normalized object for responders
+set.seed(42)
+x.ctrl = microbio[,as.character(metadata$RUNID[which(metadata$phenotype == 'R')])]
+x.case = microbio[,as.character(metadata$RUNID[which(metadata$phenotype != 'R')])]
+#replace zero by random low values
+idx = which(x.ctrl == 0,arr.ind = TRUE)
+x.norm = NULL
+x.norm.case = NULL
+for(i in 1:nrow(x.ctrl)){
+  tmp.x = as.numeric(x.ctrl[i,])
+  if(length(idx <- which(tmp.x == 0)) > 0 & length(idx <- which(tmp.x == 0)) < length(tmp.x)){
+    tmp.x[idx] = runif(n = length(idx),min = 0,max = min(as.numeric(tmp.x[-idx])))
+  }else{
+    if(length(idx <- which(tmp.x == 0)) == length(tmp.x)){
+      tmp.x[idx] = runif(n = length(idx),min = 0,max = 10^-9)
+    }
+  }
+  tmp = rank(tmp.x)/length(tmp.x)
+  x.norm = rbind(x.norm,tmp)
+  
+  tmp2.x = as.numeric(x.case[i,])
+  if(length(idx <- which(tmp2.x == 0)) > 0 & length(idx <- which(tmp2.x == 0)) < length(tmp2.x)){
+    tmp2.x[idx] = runif(n = length(idx),min = 0,max = min(as.numeric(tmp2.x[-idx])))
+  }else{
+    if(length(idx <- which(tmp2.x == 0)) == length(tmp2.x)){
+      tmp2.x[idx] = runif(n = length(idx),min = 0,max = 10^-9)
+    }
+  }
+  x.norm.case = rbind(x.norm.case,ecdf(tmp.x)(tmp2.x))
+}
+
+row.names(x.norm) = taxon[,3]
+row.names(x.norm.case) = taxon[,3]
+X.norm.ctrl[['wargo']] = x.norm
+X.norm.case[['wargo']] = x.norm.case
+
+row.names(x.ctrl) = taxon[,3]
+row.names(x.case) = taxon[,3]
+X.raw.ctrl[['wargo']] = x.ctrl
+X.raw.case[['wargo']] = x.case
+
+```
+
+
+# Zitvogel 2018 data:
+```{r}
+kraken = read.delim('../data_science18/zitvogel2018/merged_norm.txt',skip=1,header=FALSE)
+con <- file("../data_science18/zitvogel2018/merged_norm.txt","r")
+header <- readLines(con,n=1)
+close(con)
+
+header = unlist(strsplit(header,split = '\t'))[-1]
+colnames(kraken) = c('taxid','rank','name',gsub(pattern = '.out',replacement = '',gsub(pattern = '.*/',replacement = '',x=header)))
+
+# Quick fix on Oryza sativa:
+kraken$name[which(kraken$name == 'Oryza sativa')] = 'Enterobacter cloacae'
+idx = which(kraken$name == 'Enterobacter cloacae')
+if(length(idx)>1){
+  kraken[idx[1],] = c(kraken[idx[1],1:3],unlist(apply(kraken[idx,-c(1:3)],2,function(x) sum(as.numeric(x)))))
+  kraken = kraken[-idx[2:length(idx)],]
+}
+
+kraken$name[which(kraken$name == 'Camelus dromedaries')] = 'Escherichia coli'
+idx = which(kraken$name == 'Escherichia coli')
+if(length(idx)>1){
+  kraken[idx[1],] = c(kraken[idx[1],1:3],unlist(apply(kraken[idx,-c(1:3)],2,function(x) sum(as.numeric(x)))))
+  kraken = kraken[-idx[2:length(idx)],]
+}
+# fix colnames
+colnames(kraken) = gsub(pattern = '.fastq.gz',replacement = '',x = colnames(kraken))
+# load metadata with responder status
+metadata = read.delim('../data_science18/zitvogel2018/PRJEB22863.txt')
+metadata = metadata[which(metadata$run_accession %in% colnames(kraken)),]
+
+# here the response is assessed at 3 and 6 months
+# in most cases, we would like to keep the 6 months information, but when this information is not available, we use the 3 months
+response = rep('R',nrow(metadata))
+# patients assessed at 6 months as non-responder
+response[which(metadata$PFS.6.month == 'Below')] = 'NR'
+# patients not assessed at 6 months but non-responders at 3 months --> none
+#response[which(metadata$PFS.6.month == 'Not determined' & metadata$PFS.3.month == 'Below')]
+# 3 samples have no response associated
+# metadata$Response[which(metadata$PFS.6.month == 'Not determined' & metadata$PFS.3.month == 'Not determined')]: most of the partial responders are considered as responders with 'above' RECIST
+response[which(metadata$PFS.6.month == 'Not determined' & metadata$PFS.3.month == 'Not determined')] = c('R','R','R')
+table(response)
+
+# normalization
+
+prev = apply(kraken[which(kraken$rank == rank),-c(1:3)],1,function(x) sum(as.numeric(x) > thresh))
+names(prev) = kraken[which(kraken$rank == rank),3]
+idx = which(prev < ncol(kraken)/3)
+
+microbio = kraken[which(kraken$rank == rank),-c(1:3)]
+if(length(idx) > 0){
+  microbio = microbio[-idx,]
+  prev = prev[-idx]
+}
+
+taxon = kraken[which(kraken$rank == rank),1:3]
+if(length(idx) > 0) taxon = taxon[-idx,]
+
+
+# create normalized object for responders
+set.seed(42)
+x.ctrl = microbio[,as.character(metadata$run_accession[which(response == 'R')])]
+x.case = microbio[,as.character(metadata$run_accession[which(response != 'R')])]
+#replace zero by random low values
+idx = which(x.ctrl == 0,arr.ind = TRUE)
+x.norm = NULL
+x.norm.case = NULL
+for(i in 1:nrow(x.ctrl)){
+  tmp.x = as.numeric(x.ctrl[i,])
+  if(length(idx <- which(tmp.x == 0)) > 0 & length(idx <- which(tmp.x == 0)) < length(tmp.x)){
+    tmp.x[idx] = runif(n = length(idx),min = 0,max = min(as.numeric(tmp.x[-idx])))
+  }else{
+    if(length(idx <- which(tmp.x == 0)) == length(tmp.x)){
+      tmp.x[idx] = runif(n = length(idx),min = 0,max = 10^-9)
+    }
+  }
+  tmp = rank(tmp.x)/length(tmp.x)
+  x.norm = rbind(x.norm,tmp)
+  
+  tmp2.x = as.numeric(x.case[i,])
+  if(length(idx <- which(tmp2.x == 0)) > 0 & length(idx <- which(tmp2.x == 0)) < length(tmp2.x)){
+    tmp2.x[idx] = runif(n = length(idx),min = 0,max = min(as.numeric(tmp2.x[-idx])))
+  }else{
+    if(length(idx <- which(tmp2.x == 0)) == length(tmp2.x)){
+      tmp2.x[idx] = runif(n = length(idx),min = 0,max = 10^-9)
+    }
+  }
+  x.norm.case = rbind(x.norm.case,ecdf(tmp.x)(tmp2.x))
+}
+
+row.names(x.norm) = taxon[,3]
+row.names(x.norm.case) = taxon[,3]
+X.norm.ctrl[['zitvogel']] = x.norm
+X.norm.case[['zitvogel']] = x.norm.case
+
+row.names(x.ctrl) = taxon[,3]
+row.names(x.case) = taxon[,3]
+X.raw.ctrl[['zitvogel']] = x.ctrl
+X.raw.case[['zitvogel']] = x.case
+
+```
+
+
+# Koh 2017 data:
+```{r}
+kraken = read.delim('../data_neoplasia17/merged_norm.txt',skip=1,header=FALSE)
+con <- file("../data_neoplasia17/merged_norm.txt","r")
+header <- readLines(con,n=1)
+close(con)
+
+header = unlist(strsplit(header,split = '\t'))[-1]
+colnames(kraken) = c('taxid','rank','name',gsub(pattern = '.out',replacement = '',gsub(pattern = '.*/',replacement = '',x=header)))
+
+# Quick fix on Oryza sativa:
+kraken$name[which(kraken$name == 'Oryza sativa')] = 'Enterobacter cloacae'
+idx = which(kraken$name == 'Enterobacter cloacae')
+if(length(idx)>1){
+  kraken[idx[1],] = c(kraken[idx[1],1:3],unlist(apply(kraken[idx,-c(1:3)],2,function(x) sum(as.numeric(x)))))
+  kraken = kraken[-idx[2:length(idx)],]
+}
+
+kraken$name[which(kraken$name == 'Camelus dromedaries')] = 'Escherichia coli'
+idx = which(kraken$name == 'Escherichia coli')
+if(length(idx)>1){
+  kraken[idx[1],] = c(kraken[idx[1],1:3],unlist(apply(kraken[idx,-c(1:3)],2,function(x) sum(as.numeric(x)))))
+  kraken = kraken[-idx[2:length(idx)],]
+}
+# fix colnames
+colnames(kraken) = gsub(pattern = '.fastq.gz',replacement = '',x = colnames(kraken))
+# load metadata with responder status
+metadata = read.csv('../data_neoplasia17/metadata.csv')
+metadata = metadata[which(metadata$run_accession %in% colnames(kraken)),]
+
+# here the response is assessed at 3 and 6 months
+# in most cases, we would like to keep the 6 months information, but when this information is not available, we use the 3 months
+table(metadata$RECIST)
+response = rep('R',nrow(metadata)) # include stable (6) and Responder (22)
+# patients assessed at 3-4 months as non-responder
+response[which(metadata$RECIST == 'Progression')] = 'NR'
+
+table(response)
+
+# normalization
+
+prev = apply(kraken[which(kraken$rank == rank),-c(1:3)],1,function(x) sum(as.numeric(x) > thresh))
+names(prev) = kraken[which(kraken$rank == rank),3]
+idx = which(prev < ncol(kraken)/3)
+
+microbio = kraken[which(kraken$rank == rank),-c(1:3)]
+if(length(idx) > 0){
+  microbio = microbio[-idx,]
+  prev = prev[-idx]
+}
+
+taxon = kraken[which(kraken$rank == rank),1:3]
+if(length(idx) > 0) taxon = taxon[-idx,]
+
+
+# create normalized object for responders
+set.seed(42)
+x.ctrl = microbio[,as.character(metadata$run_accession[which(response == 'R')])]
+x.case = microbio[,as.character(metadata$run_accession[which(response != 'R')])]
+#replace zero by random low values
+idx = which(x.ctrl == 0,arr.ind = TRUE)
+x.norm = NULL
+x.norm.case = NULL
+for(i in 1:nrow(x.ctrl)){
+  tmp.x = as.numeric(x.ctrl[i,])
+  if(length(idx <- which(tmp.x == 0)) > 0 & length(idx <- which(tmp.x == 0)) < length(tmp.x)){
+    tmp.x[idx] = runif(n = length(idx),min = 0,max = min(as.numeric(tmp.x[-idx])))
+  }else{
+    if(length(idx <- which(tmp.x == 0)) == length(tmp.x)){
+      tmp.x[idx] = runif(n = length(idx),min = 0,max = 10^-9)
+    }
+  }
+  tmp = rank(tmp.x)/length(tmp.x)
+  x.norm = rbind(x.norm,tmp)
+  
+  tmp2.x = as.numeric(x.case[i,])
+  if(length(idx <- which(tmp2.x == 0)) > 0 & length(idx <- which(tmp2.x == 0)) < length(tmp2.x)){
+    tmp2.x[idx] = runif(n = length(idx),min = 0,max = min(as.numeric(tmp2.x[-idx])))
+  }else{
+    if(length(idx <- which(tmp2.x == 0)) == length(tmp2.x)){
+      tmp2.x[idx] = runif(n = length(idx),min = 0,max = 10^-9)
+    }
+  }
+  x.norm.case = rbind(x.norm.case,ecdf(tmp.x)(tmp2.x))
+}
+
+row.names(x.norm) = taxon[,3]
+row.names(x.norm.case) = taxon[,3]
+X.norm.ctrl[['koh']] = x.norm
+X.norm.case[['koh']] = x.norm.case
+
+row.names(x.ctrl) = taxon[,3]
+row.names(x.case) = taxon[,3]
+X.raw.ctrl[['koh']] = x.ctrl
+X.raw.case[['koh']] = x.case
+
+```
+
+# Combine data and machine learning
+
+
+## raw data
+In this section, we check whether the batch normalization properly corrected signal across the studies
+```{r}
+# find a common set of taxa between each study
+common_taxa = Reduce(intersect,lapply(X.raw.ctrl,row.names)) # 78
+tmp = lapply(X.raw.ctrl,function(x) x[common_taxa,])
+
+#only control (responder)
+library(vegan)
+library(RColorBrewer)
+  set.seed(42)
+  example_NMDS=metaMDS(t(do.call('cbind',tmp)), k=2,try = 50) 
+  
+  library(scales)
+  ordiplot(example_NMDS,type='none')
+  points(example_NMDS, "sites", pch=21, col=c(2,4,5,6,8)[as.numeric(factor(rep(names(X.raw.ctrl),times=sapply(X.raw.ctrl,ncol))))], bg=NA)
+  ordiellipse(example_NMDS,groups = factor(rep(names(X.raw.ctrl),times=sapply(X.raw.ctrl,ncol))), col = c(2,4,5,6,8),label=F,draw='polygon')
+  legend(x='topleft',legend = names(X.raw.ctrl),fill = c(2,4,5,6,8))
+
+  groups = factor(rep(names(X.raw.ctrl),times=sapply(X.raw.ctrl,ncol)))
+mypalette<-brewer.pal(nlevels(groups),"Set1")
+
+## Bray-Curtis distances between samples
+dis <- vegdist(t(do.call('cbind',tmp)))
+## Calculate multivariate dispersions
+mod <- betadisper(dis, groups)
+mod
+## Permutation test for F
+res <- permutest(mod, pairwise = TRUE, permutations = 999)
+res
+## Plot the groups and distances to centroids on the
+## first two PCoA axes with data ellipses instead of hulls
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('raw data colored by study (PERMANOVA p = ',res$tab[1,6],')',sep=''), 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nlevels(groups)),label=FALSE) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = levels(groups),fill =mypalette)
+
+
+  # add cases
+ tmp.case = lapply(X.raw.case,function(x) x[common_taxa,])
+ library(vegan)
+  set.seed(42)
+  example_NMDS=metaMDS(t(cbind(do.call('cbind',tmp),do.call('cbind',tmp.case))), k=2,try = 50) 
+ 
+   #study-level color
+  library(scales)
+  ordiplot(example_NMDS,type='none')
+  points(example_NMDS, "sites", pch=21, col=c(2,4,5,6,8)[as.numeric(factor(c(rep(names(X.raw.ctrl),times=sapply(X.raw.ctrl,ncol)), rep(names(X.raw.case),times=sapply(X.raw.case,ncol)))))], bg=NA)
+  ordiellipse(example_NMDS,groups = factor(c(rep(names(X.raw.ctrl),times=sapply(X.raw.ctrl,ncol)), rep(names(X.raw.case),times=sapply(X.raw.case,ncol)))), col = c(2,4,5,6,8),label=F,draw='polygon')
+legend(x='topleft',legend = names(X.raw.ctrl),fill = c(2,4,5,6,8))
+
+  groups = factor(c(rep(names(X.raw.ctrl),times=sapply(X.raw.ctrl,ncol)), rep(names(X.raw.case),times=sapply(X.raw.case,ncol))))
+mypalette<-brewer.pal(nlevels(groups),"Set1")
+
+## Bray-Curtis distances between samples
+dis <- vegdist(t(cbind(do.call('cbind',tmp),do.call('cbind',tmp.case))))
+## Calculate multivariate dispersions
+mod <- betadisper(dis, groups)
+mod
+## Permutation test for F
+res <- permutest(mod, pairwise = TRUE, permutations = 999)
+res
+## Plot the groups and distances to centroids on the
+## first two PCoA axes with data ellipses instead of hulls
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('raw data colored by study (PERMANOVA p = ',res$tab[1,6],')',sep=''), 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nlevels(groups)),label=FALSE) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = levels(groups),fill =mypalette)
+
+  # all N/NR color
+    ordiplot(example_NMDS,type='none')
+  points(example_NMDS, "sites", pch=21, col=c('darkviolet','darkgreen')[as.numeric(factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case))))))], bg=NA)
+  ordiellipse(example_NMDS,groups = factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case))))), col = c('darkviolet','darkgreen'),label=F,draw='polygon')
+  legend(x='topleft',legend = c('responder','non-responder'),fill = c('darkviolet','darkgreen'))
+
+   groups = factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case)))))
+mypalette<-c('darkviolet','darkgreen')
+
+## Bray-Curtis distances between samples
+dis <- vegdist(t(cbind(do.call('cbind',tmp),do.call('cbind',tmp.case))))
+## Calculate multivariate dispersions
+mod <- betadisper(dis, groups)
+mod
+## Permutation test for F
+res <- permutest(mod, pairwise = TRUE, permutations = 999)
+res
+## Plot the groups and distances to centroids on the
+## first two PCoA axes with data ellipses instead of hulls
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('raw data colored by status (PERMANOVA p = ',res$tab[1,6],')',sep=''), 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nlevels(groups)),label=FALSE) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = levels(groups),fill =mypalette)
+   
+  library(randomForest)
+  set.seed(42)
+  m <- randomForest(x = t(cbind(do.call('cbind',tmp),do.call('cbind',tmp.case))),y=factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case))))),ntree = 500,importance = TRUE,proximity = TRUE,sampsize = c(30,30),strata = factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case))))))
+  
+  cat('\n')
+  print(kable(m$confusion))
+  cat('\n')
+  
+  cat('\n')
+  MDSplot(m, factor(Y), k=2,palette = c('darkorange','dodgerblue'))
+  cat('\n')
+```
+
+
+## normalized data
+In this section, we check whether the batch normalization properly corrected signal across the studies
+```{r}
+# find a common set of taxa between each study
+common_taxa = Reduce(intersect,lapply(X.norm.ctrl,row.names)) # 78
+tmp = lapply(X.norm.ctrl,function(x) x[common_taxa,])
+
+library(vegan)
+  set.seed(42)
+  example_NMDS=metaMDS(t(do.call('cbind',tmp)), k=2,try = 50) 
+  
+  library(scales)
+  ordiplot(example_NMDS,type='none')
+  points(example_NMDS, "sites", pch=21, col=c(2,4,5,6,8)[as.numeric(factor(rep(names(X.norm.ctrl),times=sapply(X.norm.ctrl,ncol))))], bg=NA)
+  ordiellipse(example_NMDS,groups = factor(rep(names(X.norm.ctrl),times=sapply(X.norm.ctrl,ncol))), col = c(2,4,5,6,8),label=F,draw='polygon')
+  legend(x='topleft',legend = names(X.norm.ctrl),fill = c(2,4,5,6,8))
+
+  
+  groups = factor(rep(names(X.norm.ctrl),times=sapply(X.norm.ctrl,ncol)))
+mypalette<-brewer.pal(nlevels(groups),"Set1")
+
+## Bray-Curtis distances between samples
+dis <- vegdist(t(do.call('cbind',tmp)))
+## Calculate multivariate dispersions
+mod <- betadisper(dis, groups)
+mod
+## Permutation test for F
+res <- permutest(mod, pairwise = TRUE, permutations = 999)
+res
+## Plot the groups and distances to centroids on the
+## first two PCoA axes with data ellipses instead of hulls
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('normalized data colored by study (PERMANOVA p = ',res$tab[1,6],')',sep=''), 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nlevels(groups)),label=FALSE) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = levels(groups),fill =mypalette)
+
+  
+ tmp.case = lapply(X.norm.case,function(x) x[common_taxa,])
+ library(vegan)
+  set.seed(42)
+  example_NMDS=metaMDS(t(cbind(do.call('cbind',tmp),do.call('cbind',tmp.case))), k=2,try = 50) 
+ 
+    #study-level color
+  library(scales)
+  ordiplot(example_NMDS,type='none')
+  points(example_NMDS, "sites", pch=21, col=c(2,4,5,6,8)[as.numeric(factor(c(rep(names(X.norm.ctrl),times=sapply(X.norm.ctrl,ncol)), rep(names(X.norm.case),times=sapply(X.norm.case,ncol)))))], bg=NA)
+  ordiellipse(example_NMDS,groups = factor(c(rep(names(X.norm.ctrl),times=sapply(X.norm.ctrl,ncol)), rep(names(X.norm.case),times=sapply(X.norm.case,ncol)))), col = c(2,4,5,6,8),label=F,draw='polygon')
+legend(x='topleft',legend = names(X.norm.ctrl),fill = c(2,4,5,6,8))
+   
+  groups = factor(c(rep(names(X.norm.ctrl),times=sapply(X.norm.ctrl,ncol)), rep(names(X.norm.case),times=sapply(X.norm.case,ncol))))
+mypalette<-brewer.pal(nlevels(groups),"Set1")
+
+## Bray-Curtis distances between samples
+dis <- vegdist(t(cbind(do.call('cbind',tmp),do.call('cbind',tmp.case))))
+## Calculate multivariate dispersions
+mod <- betadisper(dis, groups)
+mod
+## Permutation test for F
+res <- permutest(mod, pairwise = TRUE, permutations = 999)
+res
+## Plot the groups and distances to centroids on the
+## first two PCoA axes with data ellipses instead of hulls
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('normalized data colored by study (PERMANOVA p = ',res$tab[1,6],')',sep=''), 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nlevels(groups)),label=FALSE) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = levels(groups),fill =mypalette)
+
+
+  library(scales)
+  ordiplot(example_NMDS,type='none')
+  points(example_NMDS, "sites", pch=21, col=c('darkviolet','darkgreen')[as.numeric(factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case))))))], bg=NA)
+  ordiellipse(example_NMDS,groups = factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case))))), col = c('darkviolet','darkgreen'),label=F,draw='polygon')
+  legend(x='topleft',legend = c('responder','non-responder'),fill = c('darkviolet','darkgreen'))
+
+     groups = factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case)))))
+mypalette<-c('darkviolet','darkgreen')
+## Bray-Curtis distances between samples
+dis <- vegdist(t(cbind(do.call('cbind',tmp),do.call('cbind',tmp.case))))
+## Calculate multivariate dispersions
+mod <- betadisper(dis, groups)
+mod
+## Permutation test for F
+res <- permutest(mod, pairwise = TRUE, permutations = 999)
+res
+## Plot the groups and distances to centroids on the
+## first two PCoA axes with data ellipses instead of hulls
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('normalized data colored by status (PERMANOVA p = ',res$tab[1,6],')',sep=''), 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nlevels(groups)),label=FALSE) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = levels(groups),fill =mypalette)
+   
+   
+  library(randomForest)
+  set.seed(42)
+  m <- randomForest(x = t(cbind(do.call('cbind',tmp),do.call('cbind',tmp.case))),y=factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case))))),ntree = 500,importance = TRUE,proximity = TRUE,sampsize = c(30,30),strata = factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case))))))
+  
+  cat('\n')
+  print(kable(m$confusion))
+  cat('\n')
+  
+  cat('\n')
+  MDSplot(m, factor(Y), k=2,palette = c('darkorange','dodgerblue'))
+  cat('\n')
+  
+```
+
+## Better ML model?
+```{r}
+ library(randomForest)
+  set.seed(42)
+  Y = factor(rep(c('responder','non-responder'),times=c(ncol(do.call('cbind',tmp)),ncol(do.call('cbind',tmp.case)))))
+  m <- randomForest(x = t(cbind(do.call('cbind',tmp),do.call('cbind',tmp.case))),y=Y,ntree = 1000,importance = TRUE,proximity = TRUE)
+  
+  cat('\n')
+  print(kable(m$confusion))
+  cat('\n')
+  
+  cat('\n')
+  MDSplot(m, factor(Y), k=2,palette = c('darkorange','dodgerblue'))
+  cat('\n')
+  
+ sum(Y==m$predicted)/length(Y) # 0.62
+ importance(m,type=2)[order(importance(m,type=2),decreasing=TRUE),] # Gini
+ sorted_markers = names(importance(m,type=2)[order(importance(m,type=2),decreasing=TRUE),])
+ 
+ # increasing feature set
+ ACC = rep(0,length(sorted_markers))
+ for(i in 1:length(sorted_markers)){
+   set.seed(42)
+   if(i == 1){
+     m.sub <- randomForest(x = matrix(c(do.call('cbind',tmp)[sorted_markers[i],],do.call('cbind',tmp.case)[sorted_markers[1:i],]),ncol=1),y=Y,ntree = 1000,importance = TRUE,proximity = TRUE)
+  ACC[i] = sum(Y==m.sub$predicted)/length(Y)
+   }else{
+    m.sub <- randomForest(x = t(cbind(do.call('cbind',tmp),do.call('cbind',tmp.case)))[,sorted_markers[1:i]],y=Y,ntree = 1000,importance = TRUE,proximity = TRUE)
+  ACC[i] = sum(Y==m.sub$predicted)/length(Y)
+   }
+ }
+ 
+ plot(1:length(sorted_markers),ACC)
+   max(ACC)
+  which.max(ACC)
+  sorted_markers[1:which.max(ACC)]
+```
+
+
+# Single OTUs study
+
+## Normalized data
+Here we test for significancy detection improvment when data are pulled together (as in Gibbons 2018). Color bars according to enrichment in R (green) or NR (red).
+```{r,warning=F}
+linch <-  max(strwidth(common_taxa, "inch")+0.4, na.rm = TRUE)
+par(mai=c(1.02,linch,0.82,0.42))
+
+study = 'melresist'
+ctrl = X.norm.ctrl[[study]][common_taxa,]
+case = X.norm.case[[study]][common_taxa,]
+pval.melresist = sapply(1:nrow(ctrl),function(i) wilcox.test(ctrl[i,],case[i,])$p.val) 
+names(pval.melresist) = common_taxa
+
+sign.melresist = sapply(1:nrow(ctrl),function(i) sign(mean(ctrl[i,]) - mean(case[i,]))) 
+names(sign.melresist) = common_taxa
+
+tmp2 = head(sort(-log10(pval.melresist),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.melresist[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+tmp2 = head(sort(-log10(p.adjust(pval.melresist,method='BH')),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 adjusted pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.melresist[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+
+study = 'gajewski'
+ctrl = X.norm.ctrl[[study]][common_taxa,]
+case = X.norm.case[[study]][common_taxa,]
+pval.gajewski = sapply(1:nrow(ctrl),function(i) wilcox.test(ctrl[i,],case[i,])$p.val) 
+names(pval.gajewski) = common_taxa
+sign.gajewski = sapply(1:nrow(ctrl),function(i) sign(mean(ctrl[i,]) - mean(case[i,]))) 
+names(sign.gajewski) = common_taxa
+
+tmp2 = head(sort(-log10(pval.gajewski),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.gajewski[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+tmp2 = head(sort(-log10(p.adjust(pval.gajewski,method='BH')),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 adjusted pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.gajewski[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+
+study = 'wargo'
+ctrl = X.norm.ctrl[[study]][common_taxa,]
+case = X.norm.case[[study]][common_taxa,]
+pval.wargo = sapply(1:nrow(ctrl),function(i) wilcox.test(ctrl[i,],case[i,])$p.val) 
+names(pval.wargo) = common_taxa
+
+sign.wargo = sapply(1:nrow(ctrl),function(i) sign(mean(ctrl[i,]) - mean(case[i,]))) 
+names(sign.wargo) = common_taxa
+
+
+tmp2 = head(sort(-log10(pval.wargo),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.wargo[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+tmp2 = head(sort(-log10(p.adjust(pval.wargo,method='BH')),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 adjusted pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.wargo[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+
+
+study = 'zitvogel'
+ctrl = X.norm.ctrl[[study]][common_taxa,]
+case = X.norm.case[[study]][common_taxa,]
+pval.zitvogel = sapply(1:nrow(ctrl),function(i) wilcox.test(ctrl[i,],case[i,])$p.val) 
+names(pval.zitvogel) = common_taxa
+
+sign.zitvogel = sapply(1:nrow(ctrl),function(i) sign(mean(ctrl[i,]) - mean(case[i,]))) 
+names(sign.zitvogel) = common_taxa
+
+
+tmp2 = head(sort(-log10(pval.zitvogel),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.zitvogel[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+tmp2 = head(sort(-log10(p.adjust(pval.zitvogel,method='BH')),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 adjusted pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.zitvogel[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+study = 'koh'
+ctrl = X.norm.ctrl[[study]][common_taxa,]
+case = X.norm.case[[study]][common_taxa,]
+pval.koh = sapply(1:nrow(ctrl),function(i) wilcox.test(ctrl[i,],case[i,])$p.val) 
+names(pval.koh) = common_taxa
+
+sign.koh = sapply(1:nrow(ctrl),function(i) sign(mean(ctrl[i,]) - mean(case[i,]))) 
+names(sign.koh) = common_taxa
+
+
+tmp2 = head(sort(-log10(pval.koh),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.koh[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+tmp2 = head(sort(-log10(p.adjust(pval.koh,method='BH')),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 adjusted pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.koh[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+
+
+#combine pvalue using Fisher:
+library(metap)
+merge_pval = cbind(pval.melresist,pval.gajewski,pval.wargo,pval.zitvogel,pval.koh)
+merge_pval = apply(merge_pval,1,function(x)sumlog(x)$p)
+# after adjusting for multiple testing
+#sort(p.adjust(merge_pval,method='BH'))
+
+barplot(head(sort(-log10(merge_pval),decreasing=TRUE),10), main="Association after Fisher's pooling", horiz=TRUE,las=2,xlab='-log10 pval',xlim=c(0,4.5))
+abline(v=-log10(0.05),lty=2)
+
+barplot(head(sort(-log10(p.adjust(merge_pval,method='BH')),decreasing=TRUE),10), main="Association after Fisher's pooling", horiz=TRUE,las=2,xlab='-log10 adjusted pval',xlim=c(0,2.5))
+abline(v=-log10(0.05),lty=2)
+
+#test on pooled data
+study = 'pooled data'
+ctrl = do.call('cbind',tmp)
+case = do.call('cbind',tmp.case)
+pval.pooled = sapply(1:nrow(ctrl),function(i) wilcox.test(ctrl[i,],case[i,])$p.val) 
+names(pval.pooled) = common_taxa
+
+sign.pooled = sapply(1:nrow(ctrl),function(i) sign(mean(ctrl[i,]) - mean(case[i,]))) 
+names(sign.pooled) = common_taxa
+
+
+tmp2 = head(sort(-log10(pval.pooled),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.pooled[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+tmp2 = head(sort(-log10(p.adjust(pval.pooled,method='BH')),decreasing=TRUE),10)
+  barplot(tmp2, main=paste("Association for ",study,sep=''), horiz=TRUE,las=2,xlab='-log10 adjusted pval',xlim=c(0,4.5),col = c('darkviolet','darkgreen')[(3+sign.pooled[names(tmp2)])/2])
+abline(v=-log10(0.05),lty=2)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('non-responder','responder'))
+
+# save data for LefSe
+dat = cbind(ctrl,case)
+dat = rbind(c(rep('responder',ncol(ctrl)),rep('non-responder',ncol(case))),dat)
+row.names(dat)[1] = 'status'
+write.table(dat,file='all_data_lefse_format_july2019.txt',quote = FALSE,row.names = TRUE,col.names = FALSE,sep = '\t')
+```
+
+
+![](all_data_lefse_format_july2019.png)
