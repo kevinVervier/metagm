@@ -1,17 +1,9 @@
 ---
-title: "IBS-paired: Kraken0419_taxo + Bracken: current working list"
+title: "Standard Kraken+Bracken analysis"
 author: "Kevin Vervier"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
-
-In this analysis, we use longitudinal data for IBS patients and matched households. 
-Compared to the 060919 version, we got extra 60 samples to the sohort.
-
-Main questions:
-* Is there difference between case and control?
-* same house people are similar?
-* group of patients?
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
