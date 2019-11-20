@@ -1,5 +1,5 @@
 ---
-title: 'Response to antiPD1 and microbiome: meta-analysis (update November 2019) - best practice'
+title: 'Meta-analysis'
 author: "Kevin Vervier"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
