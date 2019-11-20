@@ -1,0 +1,215 @@
+---
+title: "Functional IBS paired"
+author: "Kevin Vervier"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,echo=F}
+#General info
+library(vegan)
+library(zCompositions)
+library(phyloseq)
+library(Maaslin2)
+library(knitr)
+library(ggpubr)
+
+mypalette<-c('darkviolet','darkgreen','dodgerblue','darkorange','red','gold')
+set.seed(1)
+```
+
+```{r}
+# Please insert the name of the Humann2 output file (raw/normalized)
+MYDATAFILE = 'humann2_go_trimmed.tsv'
+
+# Please insert the name of the metadata file (first column should be lane ID, second column should be group ID)
+MYMETADATAFILE = 'MAaSLIN2_Coda_2clusters_A_B_C_with_controls/metadata_2clusters.txt'
+```
+
+```{r}
+# read metadata
+metadata = read.delim(MYMETADATAFILE,header=TRUE)
+# remove NA cluster
+metadata = metadata[-which(is.na(metadata$cluster)),]
+```  
+
+```{r,eval=F}
+#load data (relative abundance after modification: light version for laptop)
+relab = read.delim('humann2_go.tsv',check.names=F)
+colnames(relab) = gsub(x=colnames(relab),pattern = '_Abundance-RPKs',replacement = '')
+#remove species specific
+idx = grep('\\|',relab[,1])
+relab = relab[-idx,]
+# remove 'NO NAME' pathway: not very informative
+idx = grep('NO_NAME',relab[,1])
+relab = relab[-idx,]
+
+#remove unmapped and unintegrated
+relab = relab[-c(1:2),]
+# only keep summary columns (not species specific ones) --> reduce dimension (808 features after filtering)
+write.table(relab,file='humann2_go_trimmed.tsv',quote=FALSE,sep='\t')
+```
+
+```{r}
+relab = read.delim(MYDATAFILE,check.names=F)
+relab = t(relab)
+relab[,1] = row.names(relab)
+relab = relab[-which(duplicated(row.names(relab))),]
+
+# WARNING: DOUBLE CHECK COLNAMES ORDER
+
+colnames(relab) = relab[1,]
+relab = relab[-1,]
+colnames(relab)[1] = '#'
+
+tmp = relab[,1]
+relab = apply(relab,2,as.numeric)
+tmp2 = data.frame(tmp,relab)
+tmp2 = tmp2[,-2]
+colnames(tmp2)[1] = 'Sample_ID'
+
+row.names(tmp2) = NULL
+relab = tmp2
+
+#filter out unused samples:
+relab = relab[which(relab[,1] %in% metadata$Sample_ID),]
+
+write.table(relab,file='go_reformatted_sub.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+#reorder
+idx = match(relab[,1],metadata$Sample_ID)
+if(length(which(is.na(idx))) >0) idx = idx[-which(is.na(idx))]
+metadata = metadata[idx,]
+
+write.table(metadata,file='metadata_reformatted.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+# 
+# fit_data <- Maaslin2(input_data = 'go_reformatted_sub.txt',input_metadata = 'metadata_reformatted.txt',
+#                      output='Maaslin_output_go',
+#                      random_effects = 'pair',
+#                      fixed_effects = colnames(metadata)[-c(1,2)],transform = 'AST')
+# 
+
+
+#A-B and cases only
+
+metadata = metadata[which(metadata$time %in% c('A','B') & metadata$group == 'Case'),]
+relab = relab[which(relab[,1] %in% metadata$Sample_ID),]
+write.table(relab,file='go_reformatted_AB_Cases.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+#reorder
+idx = match(relab[,1],metadata$Sample_ID)
+if(length(which(is.na(idx))) >0) idx = idx[-which(is.na(idx))]
+metadata = metadata[idx,]
+write.table(metadata,file='metadata_reformatted_AB_Cases.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+fit_data <- Maaslin2(input_data = 'go_reformatted_AB_Cases.txt',input_metadata = 'metadata_reformatted_AB_Cases.txt',
+                     output='Maaslin_output_go_AB_Cases',
+                     random_effects = 'pair',
+                     fixed_effects = c('time','cluster','ClusterxTime'),transform = 'AST')
+
+
+
+```
+
+
+
+# KEGG PATHWAY
+
+```{r}
+# Please insert the name of the Kraken output file (raw/normalized)
+MYDATAFILE = 'humann2_ko_trimmed.tsv'
+
+# Please insert the name of the metadata file (first column should be lane ID, second column should be group ID)
+MYMETADATAFILE = 'MAaSLIN2_Coda_2clusters_A_B_C_with_controls/metadata_2clusters.txt' 
+```
+
+```{r,eval=F}
+#load data (relative abundance after modification: light version for laptop)
+relab = read.delim('humann2_ko.tsv',check.names=F)
+colnames(relab) = gsub(x=colnames(relab),pattern = '_Abundance-RPKs',replacement = '')
+#remove species specific
+idx = grep('\\|',relab[,1])
+relab = relab[-idx,]
+# remove 'NO NAME' pathway: not very informative
+idx = grep('NO_NAME',relab[,1])
+relab = relab[-idx,]
+
+#remove unmapped and unintegrated
+relab = relab[-c(1:2),]
+# only keep summary columns (not species specific ones) --> reduce dimension (808 features after filtering)
+write.table(relab,file='humann2_ko_trimmed.tsv',quote=FALSE,sep='\t')
+```
+
+
+```{r}
+relab = read.delim(MYDATAFILE,check.names=F)
+colnames(relab)[3:ncol(relab)] =  colnames(relab)[2:(ncol(relab)-1)]
+colnames(relab)[2] = 'KO'
+
+relab = t(relab)
+relab[,1] = row.names(relab)
+relab = relab[-which(duplicated(row.names(relab))),]
+
+relab = relab[-1,]
+relab = relab[,-1]
+colnames(relab) = relab[1,]
+relab = relab[-1,]
+#colnames(relab)[1] = '#'
+
+tmp = row.names(relab)
+relab = apply(relab,2,as.numeric)
+tmp2 = data.frame(tmp,relab)
+#tmp2 = tmp2[,-2]
+colnames(tmp2)[1] = 'Sample_ID'
+
+row.names(tmp2) = NULL
+relab = tmp2
+
+#filter out unused samples:
+# read metadata
+metadata = read.delim(MYMETADATAFILE,header=TRUE)
+metadata = metadata[-which(is.na(metadata$cluster)),]
+relab = relab[which(relab[,1] %in% metadata$Sample_ID),]
+
+write.table(relab,file='ko_reformatted_sub.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+#reorder
+idx = match(relab[,1],metadata$Sample_ID)
+if(length(which(is.na(idx))) >0) idx = idx[-which(is.na(idx))]
+metadata = metadata[idx,]
+
+write.table(metadata,file='metadata_reformatted.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+
+# fit_data <- Maaslin2(input_data = 'ko_reformatted_sub.txt',input_metadata = 'metadata_reformatted.txt',
+#                      output='Maaslin_output_ko',
+#                      random_effects = 'pair',
+#                      fixed_effects = colnames(metadata)[-c(1,2)],transform = 'AST')
+
+
+#A-B and cases only
+
+metadata = metadata[which(metadata$time %in% c('A','B') & metadata$group == 'Case'),]
+relab = relab[which(relab[,1] %in% metadata$Sample_ID),]
+write.table(relab,file='ko_reformatted_AB_Cases.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+#reorder
+idx = match(relab[,1],metadata$Sample_ID)
+if(length(which(is.na(idx))) >0) idx = idx[-which(is.na(idx))]
+metadata = metadata[idx,]
+write.table(metadata,file='metadata_reformatted_AB_Cases.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+fit_data <- Maaslin2(input_data = 'ko_reformatted_AB_Cases.txt',input_metadata = 'metadata_reformatted_AB_Cases.txt',
+                     output='Maaslin_output_ko_AB_Cases',
+                     random_effects = 'pair',
+                     fixed_effects = c('time','cluster','ClusterxTime'),transform = 'AST')
+
+
+```

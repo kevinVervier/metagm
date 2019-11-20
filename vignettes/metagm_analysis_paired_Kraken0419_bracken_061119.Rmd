@@ -1,0 +1,2276 @@
+---
+title: "IBS-paired: Kraken0419_taxo + Bracken: current working list"
+author: "Kevin Vervier"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+In this analysis, we use longitudinal data for IBS patients and matched households. 
+Compared to the 060919 version, we got extra 60 samples to the sohort.
+
+Main questions:
+* Is there difference between case and control?
+* same house people are similar?
+* group of patients?
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,echo=F}
+#General info
+library(vegan)
+library(zCompositions)
+library(phyloseq)
+library(Maaslin2)
+library(knitr)
+library(ggpubr)
+
+mypalette<-c('darkviolet','darkgreen','dodgerblue','darkorange','red','gold')
+set.seed(1)
+```
+
+```{r}
+# Please insert the name of the Kraken output file (raw/normalized)
+MYDATAFILE = 'merged_S.bracken'
+
+# Please insert the name of the metadata file (first column should be lane ID, second column should be group ID)
+MYMETADATAFILE = 'sample_working_list.txt'
+```
+
+Load pathogens curated by Ales:
+```{r,eval=F}
+pathogens = sort(unique(read.delim('Z:/pathogen_prevalence/ales_working_list_1019.txt',header=FALSE))[,1])
+pathogens = gsub(pattern = ' ',replacement = '.',x = pathogens)
+```
+
+
+```{r}
+# read metadata
+metadata = read.delim(MYMETADATAFILE,header=FALSE)
+metadata = metadata[,-2]
+
+questionnaire = metadata[,c(1:5,8:54)]
+colnames(questionnaire)[1] = 'Lane'
+colnames(questionnaire)[3] = 'Time.point'
+  
+metadata = metadata[,c(1:5)]
+colnames(metadata) = c('sangerID','patient','time','group','pair')
+  
+# read abundance info
+dat = read.delim(MYDATAFILE,header = TRUE,stringsAsFactors=FALSE,check.names = FALSE)
+
+# change columns name to only keep the Sanger lane ID
+colnames(dat) = gsub(x = colnames(dat),pattern = '.bracken',replacement = '')
+
+# FIX: remove multiple columns created due to bug in metagm_classifiy.py (now fixed)
+dat = dat[,!duplicated(colnames(dat))]
+
+```
+
+# Overall Kraken performance
+
+## with reference database
+```{r}
+
+dat.kraken = read.delim('merged_raw.txt',
+                 header=FALSE,stringsAsFactors=FALSE)
+dim(dat.kraken)
+
+colnames(dat.kraken) = c('taxid','rank','name',dat.kraken[1,-c(1,ncol(dat.kraken)-1,ncol(dat.kraken))])
+dat.kraken = dat.kraken[-1,]
+
+# remove bracken file columns
+dat.kraken = dat.kraken[,-grep(pattern = 'bracken',x = colnames(dat.kraken))]
+
+# unclassified rate
+classif = as.numeric(dat.kraken[which(dat.kraken$rank == 'R'),-c(1:3)])
+unclassif = as.numeric(dat.kraken[which(dat.kraken$rank == 'U'),-c(1:3)])
+
+names(unclassif) = colnames(dat.kraken[which(dat.kraken$rank == 'U'),-c(1:3)])
+
+boxplot(100*(classif/(unclassif+classif)),ylim=c(0,100),ylab='read classification rate(%)')
+median(100*(classif/(unclassif+classif)))
+```
+
+## with project specific isolates (MAGs?)
+```{r}
+#@Ana for genomes location
+```
+
+# Comparing Case and Control at Baseline (time = A)
+
+
+```{r}
+tmp = dat[,c(1,grep(colnames(dat),pattern = '_num'))]
+row.names(tmp) = tmp$name
+colnames(tmp) = gsub(x = colnames(tmp),pattern = '_S_num',replacement = '')
+
+tmp = t(tmp[,-1])
+tmp = tmp[order(row.names(tmp)),]
+metadata = metadata[order(metadata$sangerID),]
+
+#length(intersect(row.names(tmp),metadata$sangerID)) = 50
+
+metadata = metadata[which(metadata$sangerID %in% intersect(row.names(tmp),metadata$sangerID)),]
+tmp = tmp[which(row.names(tmp) %in% intersect(row.names(tmp),metadata$sangerID)),]
+row.names(metadata) = row.names(tmp)
+```
+
+```{r}
+
+idx = which(metadata$time == 'A') # 97 - 49 Case and 48 Control
+idx2 = names(which(table(metadata$pair[idx]) == 1)) # three pairs incomplete
+sub.meta = metadata[-which(metadata$pair %in% idx2),]
+sub.tmp = tmp[-which(metadata$pair %in% idx2),]
+sub.tmp = sub.tmp[which(sub.meta$time == 'A'),]
+sub.meta = sub.meta[which(sub.meta$time == 'A'),] # 47 pairs
+ps <- phyloseq(sample_data(sub.meta),
+                 otu_table(sub.tmp, taxa_are_rows = FALSE))
+```
+
+Diversity and richness measurements:
+
+```{r}
+my_comparisons <- list( c(unique(ps@sam_data$group)[2],unique(ps@sam_data$group)[1]) )
+richness = estimate_richness(ps)
+
+
+
+df = data.frame('group'=ps@sam_data$group,'richness'=richness$Observed)
+
+p <- ggboxplot(df, x = "group", y = names(df)[2],
+                color = "group", palette =c("#00AFBB", "#E7B800", "#FC4E07"),
+                add = "jitter")
+p + stat_compare_means(comparisons = my_comparisons,paired=TRUE) + ylab('N Observed')
+
+df = data.frame('group'=ps@sam_data$group,'richness'=richness$Chao1)
+
+p <- ggboxplot(df, x = "group", y = names(df)[2],
+                color = "group", palette =c("#00AFBB", "#E7B800", "#FC4E07"),
+                add = "jitter")
+p + stat_compare_means(comparisons = my_comparisons,paired=TRUE) + ylab('Chao1 diversity')
+
+df = data.frame('group'=ps@sam_data$group,'richness'=richness$Shannon)
+
+p <- ggboxplot(df, x = "group", y = names(df)[2],
+                color = "group", palette =c("#00AFBB", "#E7B800", "#FC4E07"),
+                add = "jitter")
+p + stat_compare_means(comparisons = my_comparisons,paired=TRUE) + ylab('Shannon diversity')
+
+
+df = data.frame('group'=ps@sam_data$group,'richness'=richness$Simpson)
+
+p <- ggboxplot(df, x = "group", y = names(df)[2],
+                color = "group", palette =c("#00AFBB", "#E7B800", "#FC4E07"),
+                add = "jitter")
+p + stat_compare_means(comparisons = my_comparisons,paired=TRUE) + ylab('Simpson diversity')
+
+
+```
+
+# Transformation to CoDA
+```{r}
+sum(ps@otu_table == 0)
+100*sum(ps@otu_table == 0)/length(ps@otu_table)
+
+prevalence = 100*apply(ps@otu_table,2,function(x) sum(x>0)/length(x))
+total.read.count = apply(ps@otu_table,2,sum)
+
+plot(total.read.count,prevalence,pch=16,log='x',ylim=c(0,100))
+abline(h = 10,lty=2)
+
+```
+## Filter rare taxa -->NONE
+```{r}
+#  Define prevalence threshold as 10% of total samples
+prevalenceThreshold = 0.1 * nsamples(ps)
+prevalenceThreshold
+
+# Execute prevalence filter, using `prune_taxa()` function
+keepTaxa = names(prevalence)[(prevalence >= prevalenceThreshold)]
+ps1 = prune_taxa(keepTaxa, ps)
+```
+
+## Estimate zeros
+```{r}
+d.czm <- cmultRepl(ps1@otu_table,  label=0, method="CZM")
+d.clr <- t(apply(d.czm, 1, function(x){log(x) - mean(log(x))}))
+ps2 = ps1
+ps2@otu_table = otu_table(d.clr, taxa_are_rows = FALSE)
+
+
+dis<-dist(as.matrix(ps2@otu_table),method='euclidean')
+# equivalent to Aitchinson distance: Eucidean on CLR profiles
+
+mod<-betadisper(dis,ps2@sam_data$group)
+plot(mod)
+res <- permutest(mod, pairwise = TRUE, permutations = 10000)
+res
+
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('CLR data colored by status (PERMANOVA p = ',res$tab[1,6],')',sep=''), 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nsamples(ps2)),label=FALSE ) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = unique(ps2@sam_data$group),fill =mypalette)
+
+```
+
+
+### Intra/Inter-pair variability
+```{r}
+dis = as.matrix(dis)
+intra = NULL
+inter = NULL
+for(p in unique(ps2@sam_data$pair)){
+  intra = c(intra,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Control')],ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Case' )]])
+  
+  inter = c(inter,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Control')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & ps2@sam_data$group == 'Case')]])
+  
+}
+
+df = data.frame('dist' = c(intra,inter),
+                'group' = c(rep('intra',length(intra)),rep('inter',length(inter))))
+
+
+p <- ggboxplot(df, x = "group", y = "dist",
+                color = "group", palette =mypalette,
+                add = "jitter")
+p + stat_compare_means(comparisons = list(c('intra','inter')))    + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ylab('Aitchison distance')
+
+#inter: refers to distance between one control and all cases that are not households
+#intra: refers to distance between one control and its paired case
+
+
+
+dis = as.matrix(dis)
+
+intra.spf = dis[ps2@sam_data$sangerID[which(ps2@sam_data$group=='Control')],ps2@sam_data$sangerID[which(ps2@sam_data$group=='Control')]][upper.tri(dis[ps2@sam_data$sangerID[which(ps2@sam_data$group=='Control')],ps2@sam_data$sangerID[which(ps2@sam_data$group=='Control')]])]
+
+intra.ch = dis[ps2@sam_data$sangerID[which(ps2@sam_data$group=='Case')],ps2@sam_data$sangerID[which(ps2@sam_data$group=='Case')]][upper.tri(dis[ps2@sam_data$sangerID[which(ps2@sam_data$group=='Case')],ps2@sam_data$sangerID[which(ps2@sam_data$group=='Case')]])]
+
+inter = dis[ps2@sam_data$sangerID[which(ps2@sam_data$group=='Case')],ps2@sam_data$sangerID[which(ps2@sam_data$group=='Control')]][upper.tri(dis[ps2@sam_data$sangerID[which(ps2@sam_data$group=='Case')],ps2@sam_data$sangerID[which(ps2@sam_data$group=='Control')]])]
+
+df = data.frame('group'=c(rep('intra.pair',length(intra)),
+                        rep('intra.Control',length(intra.spf)),
+                         rep('intra.Case',length(intra.ch)),
+                          rep('inter.group',length(inter))),
+                'beta' = c(intra,intra.spf,intra.ch,inter))
+
+p <- ggboxplot(df, x = "group", y = "beta",
+                color = "group", palette =mypalette,
+                add = "jitter")
+p + stat_compare_means(comparisons = list(c('intra.pair','intra.Control'),c('intra.pair','intra.Case'),c('intra.pair','inter.group'),c('intra.Control','intra.Case'),c('intra.Control','inter.group'),c('intra.Case','inter.group')))    + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ylab('Aitchison distance')
+
+```
+
+### What bugs are shared across pairs?
+```{r,eval=F}
+  intra.p = NULL
+  intra.cor = NULL
+for(species in colnames(ps2@otu_table)){
+  
+  stats = cor.test(x = ps2@otu_table[which(ps2@sam_data[order(ps2@sam_data$pair)]$group == 'Control'),species],
+           y = ps2@otu_table[which(ps2@sam_data[order(ps2@sam_data$pair)]$group == 'Case'),species],method = 'spearman')
+  intra.p = c(intra.p,stats$p.value)
+  intra.cor = c(intra.cor,stats$estimate)
+}
+
+  save(intra.p,intra.cor,file='intra_pair_correlation_species.Rdata')
+  
+  #pearson
+    intra.p = NULL
+  intra.cor = NULL
+for(species in colnames(ps2@otu_table)){
+  
+  stats = cor.test(x = ps2@otu_table[which(ps2@sam_data[order(ps2@sam_data$pair)]$group == 'Control'),species],
+           y = ps2@otu_table[which(ps2@sam_data[order(ps2@sam_data$pair)]$group == 'Case'),species],method = 'pearson')
+  intra.p = c(intra.p,stats$p.value)
+  intra.cor = c(intra.cor,stats$estimate)
+}
+
+  save(intra.p,intra.cor,file='intra_pair_correlation_species_pearson.Rdata')
+```
+
+```{r,eval=F}
+#load('intra_pair_correlation_species.Rdata')
+load('intra_pair_correlation_species_pearson.Rdata')
+df = data.frame('pval' = intra.p,'cor'=intra.cor,'species' = colnames(ps2@otu_table))
+
+summary(df$cor)
+#df[order(df$pval,decreasing=FALSE),1:10]
+#plot(df$cor,-log10(df$pval),ylab='-log10 P',xlab = 'Spearman correlation',pch = 16)
+
+#get the top list of strongest correlations
+df[order(df$cor,decreasing=TRUE)[1:20],]
+write.table(df[order(df$cor,decreasing=TRUE)[1:20],],file = 'most_correlated_species.txt',sep='\t',quote=FALSE,row.names = FALSE,col.names = FALSE)
+```
+
+
+
+### Patient clustering
+```{r}
+idx = ps2@sam_data$sangerID[which(ps2@sam_data$group == 'Case' )]
+sub.dis = dis[idx,idx]
+
+mydata <- sub.dis
+wss <- (nrow(mydata)-1)*sum(apply(mydata,2,var))
+  for (i in 2:15) wss[i] <- sum(kmeans(decostand(sub.dis, "hell"),
+                                       centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares") 
+
+ ckm <- kmeans(decostand(sub.dis, "hell"), 2)
+ clusters <- ckm$cluster
+
+ table(clusters)
+ 
+cluster1 = sub.dis[names(clusters)[which(clusters == 1)],names(clusters)[which(clusters == 1)]] # 24 patients
+ 
+cluster2 = sub.dis[names(clusters)[which(clusters == 2)],names(clusters)[which(clusters == 2)]] #28 patients
+
+inter = sub.dis[names(clusters)[which(clusters == 1)],names(clusters)[which(clusters == 2)]]
+
+df = data.frame('dist' = c(cluster1[upper.tri(cluster1)],cluster2[upper.tri(cluster2)],inter[upper.tri(inter)]),
+                'group' = c(rep('cl1',length(cluster1[upper.tri(cluster1)])),rep('cl2',length(cluster2[upper.tri(cluster2)])),rep('inter',length(inter[upper.tri(inter)]))))
+
+
+p <- ggboxplot(df, x = "group", y = "dist",
+                color = "group", palette =mypalette,
+                add = "jitter")
+p + stat_compare_means(comparisons = list(c('cl1','inter'),c('cl2','inter'),c('cl1','cl2')))    + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ylab('Aitchison distance')
+
+```
+
+### Is patient clustering related to unclassified reads quantitiy? --> NO
+```{r}
+cl1.names = names(clusters)[which(clusters == 1)]
+cl2.names = names(clusters)[which(clusters == 2)]
+
+res=c()
+for(patient in c(cl1.names,cl2.names)){
+  res = c(res,unclassif[grep(pattern = paste0(patient,'.out$'),x=names(unclassif))])
+}
+
+df = data.frame('unclassif' = res,
+                'group' = c(rep('cl1',length(cl1.names)),rep('cl2',length(cl2.names))))
+
+p <- ggboxplot(df, x = "group", y = "unclassif",
+                color = "group", palette =mypalette,
+                add = "jitter")
+p + stat_compare_means(comparisons = list(c('cl1','cl2')))    + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ylab('unclassified reads')
+
+```
+
+
+
+## patient cluster comparison
+```{r}
+sub.dis <- dist(as.matrix(ps2@otu_table)[idx,],method='euclidean')
+
+
+cluster.label = rep('cl1',length(idx))
+names(cluster.label) = idx
+cluster.label[names(clusters)[which(clusters == 1)]] = 'cl2'
+
+
+
+mod<-betadisper(sub.dis,cluster.label)
+plot(mod)
+
+res <- permutest(mod, pairwise = TRUE, permutations = 10000)
+res
+
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('CLR data colored by status (PERMANOVA p = ',res$tab[1,6],')',sep=''),
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nsamples(ps2)),label=FALSE ) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = unique(cluster.label),fill =mypalette)
+
+```
+
+
+## PCA to understand differences between clusters
+```{r}
+pca = prcomp(as.matrix(ps2@otu_table)[idx,],center = TRUE,scale. = TRUE)
+
+summary(pca) #14% explained by first PC
+
+nbars <- 20
+
+  linch <-  max(strwidth(names(pca$rotation[,1][order(abs(pca$rotation[,1]),decreasing=TRUE)][1:nbars]), "inch")+0.4, na.rm = TRUE)
+  par(mai=c(1.02,linch,0.82,0.42))
+
+barplot(pca$rotation[,1][order(abs(pca$rotation[,1]),decreasing=TRUE)][1:nbars], main="PC1 main loads", horiz=TRUE,las=2,xlab='PC1 weight',xlim=1.5*range(pca$rotation[,1][order(abs(pca$rotation[,1]),decreasing=TRUE)][1:nbars]),col = c('darkviolet','darkgreen')[(3+sign(pca$rotation[,1][order(abs(pca$rotation[,1]),decreasing=TRUE)][1:nbars]))/2],cex.names = 0.5)
+legend(x='topright',fill = c('darkviolet','darkgreen'), legend = c('cl1','cl2'))
+
+#Cutibacterium acnes: skin bug, known to degrade immunogenic proteins (trigger inflammation?)
+# Bacillus coagulans: lactic acid
+# Paenibacillus rubinfantis: severe malnutrition Nigerian
+
+
+```
+
+## Link between cluster and questionnaire
+```{r}
+# get items names from questionnaire
+items = readxl::read_xls('Updated_IBS_Metadata_Severity_score_questionnaire. YYH_12NOV19.xls',sheet = 2,skip = 1)
+
+colnames(questionnaire)[9:ncol(questionnaire)] = colnames(items)[8:ncol(items)]
+  
+cl1.metadata = questionnaire[which(questionnaire$Lane %in% names(cluster.label[cluster.label=='cl1'])),]#
+
+cl2.metadata = questionnaire[which(questionnaire$Lane %in% names(cluster.label[cluster.label=='cl2'])),]#
+
+
+
+#Comparison
+for(i in c(6,8,9:52)){
+  idx.cl1 = which(cl1.metadata[,i] != '')
+  idx.cl2 = which(cl2.metadata[,i] != '')
+  
+  df = data.frame('group' = c(rep('cl1',length(idx.cl1)),rep('cl2',length(idx.cl2))), 
+                  'metadata' = c(cl1.metadata[idx.cl1,i],cl2.metadata[idx.cl2,i]))
+  
+ # tab = table(c(cl1.metadata[idx.cl1,i],cl2.metadata[idx.cl2,i]),c(rep('cl1',length(idx.cl1)),rep('cl2',length(idx.cl2))))
+  #if(nrow(tab) > 1) cat(i, fisher.test(tab)$p.val,'\n')
+  if(length(unique(df$metadata) > 5)){
+    #continuous variable
+      p <- ggboxplot(df, x = "group", y = "metadata",color = "group", palette =mypalette,
+                add = "jitter") + ggtitle(colnames(cl1.metadata)[i])
+
+  }else{
+    #categorical
+      p <- ggbarplot(df, x = "group", y = "metadata", color = "group", palette =mypalette,
+                add = "jitter") + ggtitle(colnames(cl1.metadata)[i])
+
+  }
+
+    print(p)
+}
+```
+
+
+## Machine learning on the two clusters
+Here we run random forest to understand potential differences between the two clusters:
+```{r}
+ library(randomForest)
+  Y = factor(cluster.label)
+  
+  table(Y)
+  
+  m <- randomForest(x = as.matrix(ps2@otu_table)[idx,],y=Y,ntree = 1000,importance = TRUE,proximity = TRUE)
+  
+  cat('\n')
+  print(kable(m$confusion))
+  cat('\n')
+  
+  cat('\n')
+  MDSplot(m, factor(Y), k=2,palette = c('darkorange','dodgerblue'))
+  cat('\n')
+  
+ sum(Y==m$predicted)/length(Y) # 0.94
+ importance(m,type=2)[order(importance(m,type=2),decreasing=TRUE),] # Gini
+ sorted_markers = names(importance(m,type=2)[order(importance(m,type=2),decreasing=TRUE),])
+ cat(sorted_markers[1:20])
+ 
+```
+
+
+# MAaSLIN2
+```{r, message=FALSE, warning=FALSE, results='hide'}
+relab = data.frame(ps2@otu_table)
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+sub.metadata = ps2@sam_data[,c('sangerID','pair','group')]
+sub.metadata$group = as.character(sub.metadata$group)
+sub.metadata$group[which(sub.metadata$group == 'Control')] = '.Control'
+colnames(sub.metadata)[1] = 'Sample_ID'
+
+
+write.table(sub.metadata,file='MAaSLIN2_Coda/metadata.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda/metadata.txt',
+                     output='MAaSLIN2_Coda',
+                     random_effects = 'pair',
+                     fixed_effects = 'group',transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2)
+
+```
+
+## MAaSLIN2 - 2 patient clusters
+```{r, message=FALSE, warning=FALSE, results='hide'}
+sub.metadata = ps2@sam_data[,c('sangerID','pair','group')]
+sub.metadata$group = as.character(sub.metadata$group)
+sub.metadata[names(cluster.label),3] = cluster.label
+colnames(sub.metadata)[1] = 'Sample_ID'
+
+
+sub.metadata$group[which(sub.metadata$group == 'Control')] = '.Control'
+
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters',
+                     random_effects = 'pair',
+                     fixed_effects = 'group',transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2)
+
+
+```
+
+### pathogen presence in Maaslin results
+```{r,eval=F}
+maaslin.results = read.delim('MAaSLIN2_Coda_2clusters/significant_results.tsv')
+maaslin.results[which(maaslin.results$feature %in% pathogens),]
+
+```
+
+### Presence of Cdiff in samples
+Is there a different Cdiff group abundance in patients and controls?
+--> Not enough depth/coverage to properly detect cdiff with Mash.
+```{r,eval=F}
+# load all Mash reports
+path='/lustre/scratch118/infgen/team162/kv4/Ana_IBS/metagm_260919/Kraken_classified_reads'
+mash_output = list.files(path=path,pattern='_screen.tab',full.names = TRUE)
+
+info = file.info(mash_output)
+empty = rownames(info[info$size == 0, ])
+
+mash_output = mash_output[-which(mash_output%in%empty)]
+
+RES = list()
+for (f in mash_output){
+  x = read.delim(f,header=FALSE)
+  if(any(x$V1 > 0.85)) RES[[f]] = x[which(x$V1 > 0.8),]
+}
+
+
+```
+
+
+## alpha diversity between two clusters and controls
+```{r}
+my_comparisons <- list( c('cl1','cl2'),c('cl1','.Control'),c('cl2','.Control') )
+richness = estimate_richness(ps)
+df = data.frame('group'=sub.metadata$group,'richness'=richness$Shannon)
+
+p <- ggboxplot(df, x = "group", y = names(df)[2],
+                color = "group", palette =c("#00AFBB", "#E7B800", "#FC4E07"),
+                add = "jitter")
+p + stat_compare_means(comparisons = my_comparisons) + ylab('Shannon diversity')
+
+
+
+df = data.frame('group'=sub.metadata$group,'richness'=richness$Simpson)
+
+p <- ggboxplot(df, x = "group", y = names(df)[2],
+                color = "group", palette =c("#00AFBB", "#E7B800", "#FC4E07"),
+                add = "jitter")
+p + stat_compare_means(comparisons = my_comparisons) + ylab('Simpson diversity')
+
+
+```
+
+## PCOA with two clusters in perspective of control samples
+```{r}
+dis<-dist(as.matrix(ps2@otu_table),method='euclidean')
+# equivalent to Aitchinson distance: Euclidean on CLR profiles
+
+mod<-betadisper(dis,sub.metadata$group)
+plot(mod)
+res <- permutest(mod, pairwise = TRUE, permutations = 10000)
+res
+
+plot(mod, ellipse = TRUE, hull = FALSE, conf = 0.90,main = paste('CLR data colored by status (PERMANOVA p = ',res$tab[1,6],')',sep=''), 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nsamples(ps2)),label=FALSE ) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = sort(unique(sub.metadata$group)),fill =mypalette)
+
+```
+
+## Beta-diversity analysis using pairs within each cluster
+
+```{r}
+labels = sub.metadata$group
+
+dis = as.matrix(dis)
+intra.cl1 = NULL
+intra.cl2 = NULL
+intra = NULL
+inter = NULL
+within.cases = NULL
+within.cl1.cases = NULL
+within.cl1.ctrls = NULL
+within.cl2.cases = NULL
+within.cl2.ctrls = NULL
+within.ctrls = NULL
+for(p in unique(ps2@sam_data$pair)){
+  #cl1 case
+  if(any(labels[which(ps2@sam_data$pair==p)] == 'cl1')){
+    #one pair cl1
+    intra.cl1 = c(intra.cl1,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == '.Control')],ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == 'cl1')]])
+    # all other cases in cl1
+    within.cl1.cases = c(within.cl1.cases,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == 'cl1')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & labels == 'cl1')]])
+    # all other controls in cl1
+    within.cl1.ctrls = c(within.cl1.ctrls,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == '.Control')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & labels == '.Control')]])
+    
+    
+  }else{#cl2 case
+    intra.cl2 = c(intra.cl2,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == '.Control')],ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == 'cl2')]])
+        # all other cases in cl2
+    within.cl2.cases = c(within.cl2.cases,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == 'cl2')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & labels == 'cl2')]])
+    # all other controls in cl2
+    within.cl2.ctrls = c(within.cl2.ctrls,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == '.Control')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & labels == '.Control')]])
+  }
+  # all pairs
+  intra = c(intra,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == '.Control')],ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels %in% c('cl1','cl2'))]])
+  # inter group
+  inter = c(inter,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == '.Control')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & labels %in% c('cl1','cl2'))]])
+  # get all other cases
+  within.cases = c(within.cases,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels %in% c('cl1','cl2'))],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & labels %in% c('cl1','cl2'))]])
+  # get all other controls
+    within.ctrls = c(within.ctrls,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & labels == '.Control')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & labels == '.Control')]])
+}
+#intra.cl1: refers to distance between one control and its paired case (in cluster 1 only)
+# cl1 pairs are closer together as the cases look like controls
+#intra.cl2: refers to distance between one control and its paired case (in cluster 2 only)
+# cl2 pairs contain 'actaul' cases and are less similar
+# Significant difference in the cl1/cl2 pairs comparison (p=0.016)
+#inter: refers to distance between one control and all cases that are not households
+#intra: refers to distance between one control and its paired case (both clusters together)
+
+
+
+# Fig 1: cluster 2 patients are further from their paired households compared to cluster 1 patients
+
+df = data.frame('dist' = c(intra.cl1,intra.cl2,intra),
+                'group' = c(rep('intra.cl1',length(intra.cl1)),rep('intra.cl2',length(intra.cl2)),rep('intra.both',length(intra))))
+
+
+p <- ggboxplot(df, x = "group", y = "dist",
+                color = "group", palette =mypalette,
+                add = "jitter")
+p + stat_compare_means(comparisons = list(c('intra.cl1','intra.cl2'),
+                                          c('intra.cl1','intra.both'),c('intra.cl2','intra.both')))    + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ylab('Aitchison distance')
+
+
+
+# Fig2: overall paired data are closer together than random pairing (inter)
+# This effect comes mainly from cluster 1 patients
+df = data.frame('dist' = c(intra.cl1,intra.cl2,intra,inter),
+                'group' = c(rep('intra.cl1',length(intra.cl1)),rep('intra.cl2',length(intra.cl2)),rep('intra.both',length(intra)),rep('random',length(inter))))
+
+
+p <- ggboxplot(df, x = "group", y = "dist",
+                color = "group", palette =mypalette,
+                add = "jitter")
+p + stat_compare_means(comparisons = list(c('intra.both','random'),
+                                          c('intra.cl1','random'),c('intra.cl2','random')))    + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ylab('Aitchison distance')
+
+# Fig3: cases within each cluster compared to all cases --> clustering effect
+# Each cluster has a stronger proximity: sanity check that clustering is doing what expected
+df = data.frame('dist' = c(within.cl1.cases,within.cl2.cases,within.cases),
+                'group' = c(rep('cl1.cases',length(within.cl1.cases)),rep('cl2.cases',length(within.cl2.cases)),rep('all.cases',length(within.cases))))
+
+
+p <- ggboxplot(df, x = "group", y = "dist",
+                color = "group", palette =mypalette,
+                add = "jitter")
+p + stat_compare_means(comparisons = list(c('cl1.cases','cl2.cases'),
+                                          c('cl1.cases','all.cases'),c('cl2.cases','all.cases')))    + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ylab('Aitchison distance')
+
+# Fig 4: controls in each cluster vs all combined
+# Not sure how to interpret this...
+df = data.frame('dist' = c(within.cl1.ctrls,within.cl2.ctrls,within.ctrls),
+                'group' = c(rep('cl1.ctrls',length(within.cl1.ctrls)),rep('cl2.ctrls',length(within.cl2.ctrls)),rep('all.ctrls',length(within.ctrls))))
+
+
+p <- ggboxplot(df, x = "group", y = "dist",
+                color = "group", palette =mypalette,
+                add = "jitter")
+p + stat_compare_means(comparisons = list(c('cl1.ctrls','cl2.ctrls'),
+                                          c('cl1.ctrls','all.ctrls'),c('cl2.ctrls','all.ctrls')))    + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ylab('Aitchison distance')
+
+```
+
+
+### Find samples high in Cdiff for culture
+```{r}
+ps2@sam_data$cluster = cluster.label[match(ps2@sam_data$sangerID, names(cluster.label))]
+
+#find controls
+idx = which(is.na(ps2@sam_data$cluster))
+for(i in idx){
+  ps2@sam_data$cluster[i] = ps2@sam_data$cluster[which(ps2@sam_data$pair == ps2@sam_data$pair[i] & ps2@sam_data$group == 'Case')[1]]
+}
+
+which(ps2@sam_data$cluster == 'cl1')
+sort(tapply(X=ps2@otu_table[,"Clostridioides difficile"] + ps2@otu_table[,"Clostridium perfringens"],INDEX = list(ps2@sam_data$pair), FUN = mean))
+
+#pair 5, 68, 64, 21, 42 > value:2
+
+ps2@sam_data[ps2@sam_data$pair == 5,] # cl2
+ps2@sam_data[ps2@sam_data$pair == 68,] # cl2
+ps2@sam_data[ps2@sam_data$pair == 64,] #cl2
+
+
+
+
+idx = which(ps2@sam_data$cluster == 'cl1')
+sort(tapply(X=ps2@otu_table[idx,"Clostridioides difficile"] + ps2@otu_table[idx,"Clostridium perfringens"],INDEX = list(ps2@sam_data$pair[idx]), FUN = mean))
+ps2@sam_data[ps2@sam_data$pair == 42,] # cl1
+ps2@sam_data[ps2@sam_data$pair == 33,] # cl1
+ps2@sam_data[ps2@sam_data$pair == 23,] # cl1
+
+
+ps2@otu_table[ps2@sam_data$sangerID[ps2@sam_data$pair == 42], c("Clostridioides difficile","Clostridium perfringens")]
+ps2@otu_table[ps2@sam_data$sangerID[ps2@sam_data$pair == 33], c("Clostridioides difficile","Clostridium perfringens")]
+ps2@otu_table[ps2@sam_data$sangerID[ps2@sam_data$pair == 23], c("Clostridioides difficile","Clostridium perfringens")]
+
+
+
+
+
+#entorococcus
+sort(tapply(X=ps2@otu_table[,"Enterococcus faecalis"],INDEX = list(ps2@sam_data$pair), FUN = mean))
+
+ps2@otu_table[ps2@sam_data$sangerID[ps2@sam_data$pair == 68], "Enterococcus faecalis"]
+ps2@sam_data[ps2@sam_data$pair == 68,]
+
+ps2@otu_table[ps2@sam_data$sangerID[ps2@sam_data$pair == 64], "Enterococcus faecalis"]
+ps2@sam_data[ps2@sam_data$pair == 64,]
+```
+
+# Diet intervention
+
+## Data completeness
+```{r}
+table(metadata$time)
+
+hist(table(metadata$pair),xlab='N_samples in a pair',ylab='count',main='')
+
+length(which(table(metadata$pair) == 6)) # 21/52 complete pairs
+
+length(which(table(metadata$pair[which(metadata$time == 'A' | metadata$time == 'B' )]) == 4)) # 39 complete pairs with A and B samples
+
+length(which(table(metadata$pair[which(metadata$time == 'A' | metadata$time == 'C' )]) == 4)) # 24 complete pairs with A and C samples
+
+```
+
+## Change from time A to B
+```{r}
+ idx = which(metadata$time == 'A' | metadata$time == 'B') 
+ idx2 = names(which(table(metadata$pair[idx]) == 4))
+ sub.meta = metadata[which(metadata$pair %in% idx2),]
+ sub.tmp = tmp[which(metadata$pair %in% idx2),]
+ sub.tmp = sub.tmp[which(sub.meta$time == 'A' | sub.meta$time == 'B'),] # 120 samples = 4 time 30
+ sub.meta = sub.meta[which(sub.meta$time == 'A' | sub.meta$time == 'B'),] 
+ ps <- phyloseq(sample_data(sub.meta),
+                  otu_table(sub.tmp, taxa_are_rows = FALSE))
+ 
+# Transformation to CoDA
+sum(ps@otu_table == 0)
+100*sum(ps@otu_table == 0)/length(ps@otu_table)
+
+prevalence = 100*apply(ps@otu_table,2,function(x) sum(x>0)/length(x))
+total.read.count = apply(ps@otu_table,2,sum)
+
+plot(total.read.count,prevalence,pch=16,log='x',ylim=c(0,100))
+abline(h = 10,lty=2)
+
+## Filter rare taxa -->NONE
+
+#  Define prevalence threshold as 10% of total samples
+prevalenceThreshold = 0.1 * nsamples(ps)
+prevalenceThreshold
+
+# Execute prevalence filter, using `prune_taxa()` function
+keepTaxa = names(prevalence)[(prevalence >= prevalenceThreshold)]
+ps1 = prune_taxa(keepTaxa, ps)
+
+
+## Estimate zeros
+d.czm <- cmultRepl(ps1@otu_table,  label=0, method="CZM")
+d.clr <- t(apply(d.czm, 1, function(x){log(x) - mean(log(x))}))
+ps2 = ps1
+ps2@otu_table = otu_table(d.clr, taxa_are_rows = FALSE)
+
+
+dis<-dist(as.matrix(ps2@otu_table),method='euclidean')
+# equivalent to Aitchinson distance: Eucidean on CLR profiles
+
+mod<-betadisper(dis,paste(ps2@sam_data$group,ps2@sam_data$time,sep='-'))
+plot(mod)
+res <- permutest(mod, pairwise = TRUE, permutations = 10000)
+res
+
+```
+
+### Intra/Inter-pair variability
+```{r}
+dis = as.matrix(dis)
+intra.A = NULL
+inter.A = NULL
+intra.B = NULL
+inter.B = NULL
+for(p in unique(ps2@sam_data$pair)){
+  intra.A = c(intra.A,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Control' & ps2@sam_data$time == 'A')],ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Case'& ps2@sam_data$time == 'A')]])
+  
+  inter.A = c(inter.A,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Control' & ps2@sam_data$time == 'A')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & ps2@sam_data$group == 'Case' & ps2@sam_data$time == 'A')]])
+  
+    intra.B = c(intra.B,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Control' & ps2@sam_data$time == 'B')],ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Case'& ps2@sam_data$time == 'B')]])
+  
+  inter.B = c(inter.B,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Control' & ps2@sam_data$time == 'B')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & ps2@sam_data$group == 'Case' & ps2@sam_data$time == 'B')]])
+  
+}
+
+df = data.frame('dist' = c(intra.A,inter.A,intra.B,inter.B),
+                'group' = c(rep('intra-T0',length(intra.A)),rep('inter-T0',length(inter.A)),rep('intra-T1',length(intra.B)),rep('inter-T1',length(inter.B))))
+df$group = factor(df$group,levels=c('inter-T0','intra-T0','inter-T1','intra-T1'))
+
+
+p <- ggboxplot(df, x = "group", y = "dist",
+                color = "group", palette =mypalette,
+                add = "jitter")
+p + stat_compare_means(comparisons = list(c('intra-T0','inter-T0'),c('intra-T1','inter-T1'),c('intra-T0','intra-T1'),c('inter-T0','inter-T1')))    + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ylab('Aitchison distance')
+
+
+# Diet do not impact how close pairs are 
+# Diet makes pairs closer to each other compared to the rest of the samples
+# Overall, Samples in T1 are much closely related than at T0
+```
+
+### Patient clusters
+
+```{r}
+
+ps2@sam_data$cluster = cluster.label[match(ps2@sam_data$sangerID, names(cluster.label))]
+for(patient in unique(ps2@sam_data$patient)){
+  if(any(!is.na(ps2@sam_data$cluster[which(ps2@sam_data$patient == patient)]))) ps2@sam_data$cluster[which(ps2@sam_data$patient == patient)][is.na(ps2@sam_data$cluster[which(ps2@sam_data$patient == patient)])] = ps2@sam_data$cluster[which(ps2@sam_data$patient == patient)][!is.na(ps2@sam_data$cluster[which(ps2@sam_data$patient == patient)])]
+}
+
+table(ps2@sam_data$cluster)/2 # 22 cl1 and 17 cl2
+
+idx = which(is.na(ps2@sam_data$cluster))
+idx2 = as.character(ps2@sam_data$sangerID[-idx])
+
+ps3 <-  phyloseq(sample_data(ps2@sam_data[-idx,]),
+                 otu_table(ps2@otu_table[idx2,], taxa_are_rows = FALSE))
+
+
+dis <- dist(as.matrix(ps3@otu_table),method='euclidean')
+
+mod<-betadisper(dis,paste(ps3@sam_data$cluster,ps3@sam_data$time,sep='-'))
+plot(mod)
+res <- permutest(mod, pairwise = TRUE, permutations = 10000)
+res
+
+
+plot(mod, ellipse = FALSE, hull = TRUE, conf = 0.90,main = 'CLR data colored by status', 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nsamples(ps3)),label=FALSE ) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = sort(unique(paste(ps3@sam_data$cluster,ps3@sam_data$time,sep='-'))),fill =mypalette)
+
+```
+
+### Maaslin2
+```{r}
+sub.metadata = ps3@sam_data[,c('sangerID','pair','time','cluster')]
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[5] = 'ClusterxTime'
+colnames(sub.metadata)[1] = 'Sample_ID'
+
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters_A_B/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+relab = data.frame(ps3@otu_table)
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda_2clusters_A_B/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda_2clusters_A_B/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters_A_B/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters_A_B',
+                     random_effects = 'pair',
+                     fixed_effects = c('ClusterxTime'),transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2) #'time','cluster',
+
+```
+
+
+### Patient clusters with control as background
+
+```{r}
+#find controls
+idx = which(is.na(ps2@sam_data$cluster))
+for(i in idx){
+  ps2@sam_data$cluster[i] = ps2@sam_data$cluster[which(ps2@sam_data$pair == ps2@sam_data$pair[i] & ps2@sam_data$group == 'Case')[1]]
+}
+
+table(ps2@sam_data$cluster)/2 # 32 cases in cl1 and 28 in cl2
+
+
+ps3 <-  phyloseq(sample_data(ps2@sam_data),
+                 otu_table(ps2@otu_table, taxa_are_rows = FALSE))
+
+
+dis <- dist(as.matrix(ps3@otu_table),method='euclidean')
+
+group.labels = paste(ps3@sam_data$group,ps3@sam_data$cluster,ps3@sam_data$time,sep='-')
+group.labels[grep(pattern = 'Control',x = group.labels)] = 'Control'
+mod<-betadisper(dis,group.labels)
+#mod<-betadisper(dis,paste(ps3@sam_data$group,ps3@sam_data$cluster,ps3@sam_data$time,sep='-'))
+# plot(mod)
+# res <- permutest(mod, pairwise = TRUE, permutations = 10000)
+# res
+# 
+
+plot(mod, ellipse = FALSE, hull = TRUE, conf = 0.90,main = 'CLR data colored by status',
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=c(mypalette[1:4],'grey80'),segments=FALSE,pch=rep(16,nsamples(ps3)),label=FALSE ) # 90% data ellipse, could be changed by conf value
+#legend(x='topleft',legend = sort(unique(paste(ps3@sam_data$cluster,ps3@sam_data$time,sep='-'))),fill =mypalette)
+legend(x='topleft',legend = sort(unique(group.labels)),fill =c(mypalette[1:4],'grey80'))
+
+
+set.seed(42)
+adonis2(dis~cluster+time+group,data=data.frame(ps3@sam_data),permutations = 10000)
+
+
+```
+
+### Maaslin2
+```{r}
+sub.metadata = ps3@sam_data[,c('sangerID','pair','group','time','cluster')]
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[6] = 'ClusterxTime'
+colnames(sub.metadata)[1] = 'Sample_ID'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[7] = 'GroupxClusterxTime'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$cluster,sep='-'))
+colnames(sub.metadata)[8] = 'GroupxCluster'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[9] = 'GroupxTime'
+
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters_A_B_with_controls/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+relab = data.frame(ps3@otu_table)
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda_2clusters_A_B_with_controls/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda_2clusters_A_B_with_controls/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters_A_B_with_controls/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters_A_B_with_controls',
+                     random_effects = 'pair',
+                     fixed_effects = c('group','time','cluster','GroupxClusterxTime','GroupxTime','GroupxCluster','ClusterxTime'),transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2) 
+
+```
+
+
+## Change from time B to C
+```{r}
+
+#store cluster labels info just for cases
+cluster.label.cases = ps2@sam_data$cluster[which(ps2@sam_data$group == 'Case')]
+names(cluster.label.cases) = ps2@sam_data$sangerID[which(ps2@sam_data$group == 'Case')]
+  
+#subset data for B anc C time points
+ idx = which(metadata$time == 'C' | metadata$time == 'B') 
+ idx2 = names(which(table(metadata$pair[idx]) == 4)) # 
+ sub.meta = metadata[which(metadata$pair %in% idx2),]
+ sub.tmp = tmp[which(metadata$pair %in% idx2),]
+ sub.tmp = sub.tmp[which(sub.meta$time == 'C' | sub.meta$time == 'B'),] # 96 samples = 4 time 24
+ sub.meta = sub.meta[which(sub.meta$time == 'C' | sub.meta$time == 'B'),] 
+ ps <- phyloseq(sample_data(sub.meta),
+                  otu_table(sub.tmp, taxa_are_rows = FALSE))
+ 
+# Transformation to CoDA
+sum(ps@otu_table == 0)
+100*sum(ps@otu_table == 0)/length(ps@otu_table)
+
+prevalence = 100*apply(ps@otu_table,2,function(x) sum(x>0)/length(x))
+total.read.count = apply(ps@otu_table,2,sum)
+
+plot(total.read.count,prevalence,pch=16,log='x',ylim=c(0,100))
+abline(h = 10,lty=2)
+
+## Filter rare taxa -->NONE
+
+#  Define prevalence threshold as 10% of total samples
+prevalenceThreshold = 0.1 * nsamples(ps)
+prevalenceThreshold
+
+# Execute prevalence filter, using `prune_taxa()` function
+keepTaxa = names(prevalence)[(prevalence >= prevalenceThreshold)]
+ps1 = prune_taxa(keepTaxa, ps)
+
+
+## Estimate zeros
+d.czm <- cmultRepl(ps1@otu_table,  label=0, method="CZM")
+d.clr <- t(apply(d.czm, 1, function(x){log(x) - mean(log(x))}))
+ps2 = ps1
+ps2@otu_table = otu_table(d.clr, taxa_are_rows = FALSE)
+
+
+dis<-dist(as.matrix(ps2@otu_table),method='euclidean')
+# equivalent to Aitchinson distance: Eucidean on CLR profiles
+
+mod<-betadisper(dis,paste(ps2@sam_data$group,ps2@sam_data$time,sep='-'))
+plot(mod)
+res <- permutest(mod, pairwise = TRUE, permutations = 10000)
+res
+
+```
+
+### Intra/Inter-pair variability
+```{r}
+dis = as.matrix(dis)
+intra.A = NULL
+inter.A = NULL
+intra.B = NULL
+inter.B = NULL
+for(p in unique(ps2@sam_data$pair)){
+  intra.A = c(intra.A,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Control' & ps2@sam_data$time == 'C')],ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Case'& ps2@sam_data$time == 'C')]])
+  
+  inter.A = c(inter.A,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Control' & ps2@sam_data$time == 'C')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & ps2@sam_data$group == 'Case' & ps2@sam_data$time == 'C')]])
+  
+    intra.B = c(intra.B,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Control' & ps2@sam_data$time == 'B')],ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Case'& ps2@sam_data$time == 'B')]])
+  
+  inter.B = c(inter.B,dis[ps2@sam_data$sangerID[which(ps2@sam_data$pair==p & ps2@sam_data$group == 'Control' & ps2@sam_data$time == 'B')],ps2@sam_data$sangerID[which(ps2@sam_data$pair!=p & ps2@sam_data$group == 'Case' & ps2@sam_data$time == 'B')]])
+  
+}
+
+df = data.frame('dist' = c(intra.A,inter.A,intra.B,inter.B),
+                'group' = c(rep('intra-T2',length(intra.A)),rep('inter-T2',length(inter.A)),rep('intra-T1',length(intra.B)),rep('inter-T1',length(inter.B))))
+df$group = factor(df$group,levels=c('inter-T1','intra-T1','inter-T2','intra-T2'))
+
+
+p <- ggboxplot(df, x = "group", y = "dist",
+                color = "group", palette =mypalette,
+                add = "jitter")
+p + stat_compare_means(comparisons = list(c('intra-T2','inter-T2'),c('intra-T1','inter-T1'),c('intra-T2','intra-T1'),c('inter-T2','inter-T1')))    + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ylab('Aitchison distance')
+
+
+# Diet do not impact how close pairs are 
+# Diet makes pairs closer to each other compared to the rest of the samples
+# Overall, Samples in T1 are much closely related than at T0
+```
+
+### Patient clusters
+
+```{r}
+
+ps2@sam_data$cluster = cluster.label.cases[match(ps2@sam_data$sangerID, names(cluster.label.cases))]
+
+
+for(patient in unique(ps2@sam_data$patient)){
+  if(any(!is.na(ps2@sam_data$cluster[which(ps2@sam_data$patient == patient)]))) ps2@sam_data$cluster[which(ps2@sam_data$patient == patient)][is.na(ps2@sam_data$cluster[which(ps2@sam_data$patient == patient)])] = ps2@sam_data$cluster[which(ps2@sam_data$patient == patient)][!is.na(ps2@sam_data$cluster[which(ps2@sam_data$patient == patient)])]
+}
+
+table(ps2@sam_data$cluster)/2 # 14 cases in cl1 and 7 in cl2
+# 3 pairs were not assigned to a cluster
+
+
+idx = which(is.na(ps2@sam_data$cluster))
+idx2 = as.character(ps2@sam_data$sangerID[-idx])
+
+ps3 <-  phyloseq(sample_data(ps2@sam_data[-idx,]),
+                 otu_table(ps2@otu_table[idx2,], taxa_are_rows = FALSE))
+
+
+dis <- dist(as.matrix(ps3@otu_table),method='euclidean')
+
+mod<-betadisper(dis,paste(ps3@sam_data$cluster,ps3@sam_data$time,sep='-'))
+plot(mod)
+res <- permutest(mod, pairwise = TRUE, permutations = 10000)
+res
+
+set.seed(42)
+adonis2(dis~cluster+time,data=data.frame(ps3@sam_data),permutations = 10000)
+
+
+plot(mod, ellipse = FALSE, hull = TRUE, conf = 0.90,main = 'CLR data colored by status', 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nsamples(ps3)),label=FALSE ) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = sort(unique(paste(ps3@sam_data$cluster,ps3@sam_data$time,sep='-'))),fill =mypalette)
+
+
+# looks like the 6 months time point (C) is departing/relapse?
+```
+
+### Maaslin2 --> not enough samples?
+```{r}
+sub.metadata = ps3@sam_data[,c('sangerID','pair','time','cluster')]
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[5] = 'ClusterxTime'
+colnames(sub.metadata)[1] = 'Sample_ID'
+
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters_B_C/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+relab = data.frame(ps3@otu_table)
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda_2clusters_B_C/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda_2clusters_B_C/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters_B_C/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters_B_C',
+                     random_effects = 'pair',
+                     fixed_effects = c('ClusterxTime','time','cluster'),transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2) #'time','cluster',
+
+```
+
+
+### Patient clusters with control as background
+
+```{r}
+#find controls
+idx = which(is.na(ps2@sam_data$cluster))
+for(i in idx){
+  ps2@sam_data$cluster[i] = ps2@sam_data$cluster[which(ps2@sam_data$pair == ps2@sam_data$pair[i] & ps2@sam_data$group == 'Case')[1]]
+}
+
+table(ps2@sam_data$cluster)/2 # 28 clustre1 and 14 cluster2
+
+
+ps3 <-  phyloseq(sample_data(ps2@sam_data),
+                 otu_table(ps2@otu_table, taxa_are_rows = FALSE))
+
+
+dis <- dist(as.matrix(ps3@otu_table),method='euclidean')
+
+mod<-betadisper(dis,paste(ps3@sam_data$group,ps3@sam_data$cluster,ps3@sam_data$time,sep='-'))
+plot(mod)
+res <- permutest(mod, pairwise = TRUE, permutations = 10000)
+res
+
+# 
+# plot(mod, ellipse = FALSE, hull = TRUE, conf = 0.90,main = 'CLR data colored by status',
+#      xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+#      ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nsamples(ps3)),label=FALSE ) # 90% data ellipse, could be changed by conf value
+# legend(x='topleft',legend = sort(unique(paste(ps3@sam_data$cluster,ps3@sam_data$time,sep='-'))),fill =mypalette)
+
+
+#set.seed(42)
+#adonis2(dis~cluster+time+group,data=data.frame(ps3@sam_data),permutations = 10000)
+
+
+```
+
+### Maaslin2
+```{r}
+sub.metadata = ps3@sam_data[,c('sangerID','pair','group','time','cluster')]
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[6] = 'ClusterxTime'
+colnames(sub.metadata)[1] = 'Sample_ID'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[7] = 'GroupxClusterxTime'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$cluster,sep='-'))
+colnames(sub.metadata)[8] = 'GroupxCluster'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[9] = 'GroupxTime'
+
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters_B_C_with_controls/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+relab = data.frame(ps3@otu_table)
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda_2clusters_B_C_with_controls/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda_2clusters_B_C_with_controls/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters_B_C_with_controls/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters_B_C_with_controls',
+                     random_effects = 'pair',
+                     fixed_effects = c('group','time','cluster','GroupxClusterxTime','GroupxTime','GroupxCluster','ClusterxTime'),transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2) 
+
+```
+
+
+
+## All 3 time points together
+This section accepts missing data in pairs of samples. Requires at least 4/6 samples.
+
+```{r}
+
+#subset data for B anc C time points
+ idx = which(metadata$time == 'C' | metadata$time == 'B' | metadata$time == 'A') 
+ idx2 = names(which(table(metadata$pair[idx]) >= 4)) # 38 pairs included out of 55
+ sub.meta = metadata[which(metadata$pair %in% idx2),]
+ sub.tmp = tmp[which(metadata$pair %in% idx2),]
+ sub.tmp = sub.tmp[which(sub.meta$time == 'C' | sub.meta$time == 'B' | sub.meta$time == 'A'),] # 187 samples
+ sub.meta = sub.meta[which(sub.meta$time == 'C' | sub.meta$time == 'B' | sub.meta$time == 'A'),] 
+ ps <- phyloseq(sample_data(sub.meta),
+                  otu_table(sub.tmp, taxa_are_rows = FALSE))
+ 
+# Transformation to CoDA
+sum(ps@otu_table == 0)
+100*sum(ps@otu_table == 0)/length(ps@otu_table)
+
+prevalence = 100*apply(ps@otu_table,2,function(x) sum(x>0)/length(x))
+total.read.count = apply(ps@otu_table,2,sum)
+
+plot(total.read.count,prevalence,pch=16,log='x',ylim=c(0,100))
+abline(h = 10,lty=2)
+
+## Filter rare taxa -->NONE
+
+#  Define prevalence threshold as 10% of total samples
+prevalenceThreshold = 0.1 * nsamples(ps)
+prevalenceThreshold
+
+# Execute prevalence filter, using `prune_taxa()` function
+keepTaxa = names(prevalence)[(prevalence >= prevalenceThreshold)]
+ps1 = prune_taxa(keepTaxa, ps)
+
+
+## Estimate zeros
+d.czm <- cmultRepl(ps1@otu_table,  label=0, method="CZM")
+d.clr <- t(apply(d.czm, 1, function(x){log(x) - mean(log(x))}))
+ps2 = ps1
+ps2@otu_table = otu_table(d.clr, taxa_are_rows = FALSE)
+
+
+dis<-dist(as.matrix(ps2@otu_table),method='euclidean')
+# equivalent to Aitchinson distance: Eucidean on CLR profiles
+
+mod<-betadisper(dis,paste(ps2@sam_data$group,ps2@sam_data$time,sep='-'))
+#plot(mod)
+res <- permutest(mod, pairwise = TRUE, permutations = 10000)
+res
+
+
+set.seed(42)
+adonis2(dis~time+group,data=data.frame(ps2@sam_data),permutations = 10000)
+
+
+
+plot(mod, ellipse = FALSE, hull = TRUE, conf = 0.90,main = 'CLR data colored by status', 
+     xlab = paste('PCoA1 (',100*round(mod$eig[1] / sum(mod$eig),2),'%)',sep=''),
+     ylab = paste('PCoA2 (',100*round(mod$eig[2] / sum(mod$eig),2),'%)',sep=''),col=mypalette,segments=FALSE,pch=rep(16,nsamples(ps3)),label=FALSE ) # 90% data ellipse, could be changed by conf value
+legend(x='topleft',legend = sort(unique(paste(ps2@sam_data$group,ps2@sam_data$time,sep='-'))),fill =mypalette)
+
+```
+
+```{r}
+#cluster info
+ps2@sam_data$cluster = c(cluster.label.cases,cluster.label)[match(ps2@sam_data$sangerID, names(c(cluster.label.cases,cluster.label)))]
+
+
+
+#find controls
+idx = which(is.na(ps2@sam_data$cluster))
+for(i in idx){
+  ps2@sam_data$cluster[i] = ps2@sam_data$cluster[which(ps2@sam_data$pair == ps2@sam_data$pair[i] & ps2@sam_data$group == 'Case')][!is.na(ps2@sam_data$cluster[which(ps2@sam_data$pair == ps2@sam_data$pair[i] & ps2@sam_data$group == 'Case')])][1]
+}
+```
+
+
+
+### Is improvement after diet intervention cluster-specific? (Abdominal pain)
+```{r}
+colnames(questionnaire)[1] = 'sangerID'
+response = c(as.character(questionnaire$`Q17 : Abdominal pain in the last ten days?`[which(questionnaire$Time.point == 'A')]),
+as.character(questionnaire$`Q1 : Frequency of discomfort or pain in abdomen`[which(questionnaire$Time.point == 'B')]),
+as.character(questionnaire$`Q1 : Frequency of discomfort or pain in abdomen`[which(questionnaire$Time.point == 'C')]))
+#missing data
+response[response==''] = 'NA'
+
+names(response) = questionnaire$sangerID[c(which(questionnaire$Time.point == 'A'),which(questionnaire$Time.point == 'B'),which(questionnaire$Time.point == 'C'))]
+
+#Y: abdominal pain
+#N: no pain
+# NA: missing data
+
+ps2@sam_data$response = response[match(ps2@sam_data$sangerID,names(response))]
+
+table(ps2@sam_data$group,ps2@sam_data$cluster,ps2@sam_data$response,ps2@sam_data$time)
+
+sub.data = ps2@sam_data[which(ps2@sam_data$group == 'Case'),]
+if(length(which(sub.data$response != 'NA')) > 0) sub.data = sub.data[which(sub.data$response != 'NA'),]
+
+table(sub.data$cluster,sub.data$response,sub.data$time)
+sub.data$response = factor(sub.data$response)
+sub.data$cluster = factor(sub.data$cluster)
+sub.data = data.frame(sub.data)
+
+#create a labeller function for facet
+variable_names <- list(
+  "A" = "Pre-diet" ,
+  "B" = "During diet",
+  "C" = "Post-diet"
+)
+
+
+variable_labeller <- function(variable,value){
+  return(variable_names[value])
+}
+
+#remove patients not part of a cluster
+sub.data = sub.data[-which(is.na(sub.data$cluster)),]
+
+g <- ggplot(data = sub.data, aes(x = cluster, fill = response))
+g + geom_bar(position = position_dodge(width = 0.9)) + facet_wrap(~time,labeller=variable_labeller) + ggtitle('Abdominal pain in the last ten days?') + scale_x_discrete(labels = c("cluster1", "cluster2")) + scale_fill_manual(values = mypalette[2:1])
+
+
+idx = which(sub.data$time=='A')
+fisher.test(table(sub.data$response[idx],sub.data$cluster[idx]))
+
+idx = which(sub.data$time=='B')
+fisher.test(table(sub.data$response[idx],sub.data$cluster[idx]))
+
+idx = which(sub.data$cluster=='cl1' & sub.data$time %in% c('A','B'))
+fisher.test(table(sub.data$response[idx],as.character(sub.data$time[idx])))
+
+idx = which(sub.data$cluster=='cl2' & sub.data$time %in% c('A','B'))
+fisher.test(table(sub.data$response[idx],as.character(sub.data$time[idx])))
+
+```
+
+### Is improvement after diet intervention cluster-specific? (How many days with pain?)
+No difference between clusters: both of them significantly improve between T0 and T1, and remain stable between T1 and T2.
+
+
+```{r}
+response = c(as.character(questionnaire$`Q19 :  How many days with pain?`[which(questionnaire$Time.point == 'A')]),
+as.character(questionnaire$`Q3: Discomfort or pain >= 6 months`[which(questionnaire$Time.point == 'B')]),
+as.character(questionnaire$`Q3: Discomfort or pain >= 6 months`[which(questionnaire$Time.point == 'C')]))
+#missing data
+response[response==''] = 'NA'
+
+names(response) = questionnaire$sangerID[c(which(questionnaire$Time.point == 'A'),which(questionnaire$Time.point == 'B'),which(questionnaire$Time.point == 'C'))]
+
+
+ps2@sam_data$response = response[match(ps2@sam_data$sangerID,names(response))]
+
+table(ps2@sam_data$group,ps2@sam_data$cluster,ps2@sam_data$response,ps2@sam_data$time)
+
+sub.data = ps2@sam_data[which(ps2@sam_data$group == 'Case'),]
+if(length(which(sub.data$response != 'NA')) > 0) sub.data = sub.data[which(sub.data$response != 'NA'),]
+
+#table(sub.data$cluster,sub.data$response,sub.data$time)
+sub.data$response = factor(sub.data$response)
+sub.data$cluster = factor(sub.data$cluster)
+sub.data = data.frame(sub.data)
+
+#create a labeller function for facet
+variable_names <- list(
+  "A" = "Pre-diet" ,
+  "B" = "During diet",
+  "C" = "Post-diet"
+)
+
+
+variable_labeller <- function(variable,value){
+  return(variable_names[value])
+}
+
+#remove patients not part of a cluster
+sub.data = sub.data[-which(is.na(sub.data$cluster)),]
+sub.data$response = as.numeric(as.character(sub.data$response))
+
+table(sub.data$cluster,sub.data$time)
+
+g <- ggplot(data = sub.data, aes(x = cluster, y=response,fill = cluster))
+g + geom_boxplot(position = position_dodge(width = 0.9)) + facet_wrap(~time,labeller=variable_labeller) + ggtitle('How many days with pain?') + scale_x_discrete(labels = c("cluster1", "cluster2")) + scale_fill_manual(values = mypalette[2:1]) + ylab('number of days (%)')
+
+
+idx = which(sub.data$time=='A')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='B')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='C')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+```
+
+
+### Is improvement after diet intervention cluster-specific? (How much adbominal pain or discomfort of altered bowel habits has affected or interfered with your life?)
+
+At baseline, Cl2 patients have higher score than cl1, but show the better response for diet intervnetion and even after (N.S.) however.
+
+```{r}
+response = c(as.character(questionnaire$`Q23 :  How much adbominal pain or discomfort of altered bowel habits has affected or interfered with your life?`[which(questionnaire$Time.point == 'A')]),
+as.character(questionnaire$`Q7 : Stool looseness`[which(questionnaire$Time.point == 'B')]),
+as.character(questionnaire$`Q7 : Stool looseness`[which(questionnaire$Time.point == 'C')]))
+#missing data
+response[response==''] = 'NA'
+
+names(response) = questionnaire$sangerID[c(which(questionnaire$Time.point == 'A'),which(questionnaire$Time.point == 'B'),which(questionnaire$Time.point == 'C'))]
+
+
+ps2@sam_data$response = response[match(ps2@sam_data$sangerID,names(response))]
+
+#table(ps2@sam_data$group,ps2@sam_data$cluster,ps2@sam_data$response,ps2@sam_data$time)
+
+sub.data = ps2@sam_data[which(ps2@sam_data$group == 'Case'),]
+if(length(which(sub.data$response != 'NA')) > 0) sub.data = sub.data[which(sub.data$response != 'NA'),]
+
+#table(sub.data$cluster,sub.data$response,sub.data$time)
+sub.data$response = factor(sub.data$response)
+sub.data$cluster = factor(sub.data$cluster)
+sub.data = data.frame(sub.data)
+
+#create a labeller function for facet
+variable_names <- list(
+  "A" = "Pre-diet" ,
+  "B" = "During diet",
+  "C" = "Post-diet"
+)
+
+
+variable_labeller <- function(variable,value){
+  return(variable_names[value])
+}
+
+#remove patients not part of a cluster
+sub.data = sub.data[-which(is.na(sub.data$cluster)),]
+sub.data$response = as.numeric(as.character(sub.data$response))
+
+table(sub.data$cluster,sub.data$time)
+
+g <- ggplot(data = sub.data, aes(x = cluster, y=response,fill = cluster))
+g + geom_boxplot(position = position_dodge(width = 0.9)) + facet_wrap(~time,labeller=variable_labeller) + ggtitle('How much pain/disconfort has affected your life?') + scale_x_discrete(labels = c("cluster1", "cluster2")) + scale_fill_manual(values = mypalette[2:1]) + ylab('percentage')
+
+
+idx = which(sub.data$time=='A')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='B')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='C')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+```
+
+
+### Is improvement after diet intervention cluster-specific? (how severe is the abdominal distension/tightness?)
+
+At baseline, Cl2 patients have higher score than cl1, but show the better response for diet intervnetion and even after (N.S.) however.
+
+```{r}
+response = c(as.character(questionnaire$`Q21 :  If yes, how severe is the abdominal distension/tightness?`[which(questionnaire$Time.point == 'A')]),
+as.character(questionnaire$`Q5 : Higher frequency of bowel movements`[which(questionnaire$Time.point == 'B')]),
+as.character(questionnaire$`Q5 : Higher frequency of bowel movements`[which(questionnaire$Time.point == 'C')]))
+#missing data
+response[response==''] = NA
+
+names(response) = questionnaire$sangerID[c(which(questionnaire$Time.point == 'A'),which(questionnaire$Time.point == 'B'),which(questionnaire$Time.point == 'C'))]
+
+
+ps2@sam_data$response = response[match(ps2@sam_data$sangerID,names(response))]
+
+#table(ps2@sam_data$group,ps2@sam_data$cluster,ps2@sam_data$response,ps2@sam_data$time)
+
+sub.data = ps2@sam_data[which(ps2@sam_data$group == 'Case'),]
+if(length(which(is.na(sub.data$response))) > 0) sub.data = sub.data[-which(is.na(sub.data$response)),]
+
+#table(sub.data$cluster,sub.data$response,sub.data$time)
+sub.data$response = factor(sub.data$response)
+sub.data$cluster = factor(sub.data$cluster)
+sub.data = data.frame(sub.data)
+
+#create a labeller function for facet
+variable_names <- list(
+  "A" = "Pre-diet" ,
+  "B" = "During diet",
+  "C" = "Post-diet"
+)
+
+
+variable_labeller <- function(variable,value){
+  return(variable_names[value])
+}
+
+#remove patients not part of a cluster
+sub.data = sub.data[-which(is.na(sub.data$cluster)),]
+sub.data$response = as.numeric(as.character(sub.data$response))
+
+table(sub.data$cluster,sub.data$time)
+
+g <- ggplot(data = sub.data, aes(x = cluster, y=response,fill = cluster))
+g + geom_boxplot(position = position_dodge(width = 0.9)) + facet_wrap(~time,labeller=variable_labeller) + ggtitle('How severe is the abdominal distension/tightness?') + scale_x_discrete(labels = c("cluster1", "cluster2")) + scale_fill_manual(values = mypalette[2:1]) + ylab('percentage')
+
+
+idx = which(sub.data$time=='A')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='B')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='C')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+```
+
+
+### Is improvement after diet intervention cluster-specific? (How satisfied with bowel habits?)
+
+No difference for all time points. Overall improvment
+
+```{r}
+response = c(as.character(questionnaire$`Q22 :  How satisfied with bowel habits?`[which(questionnaire$Time.point == 'A')]),
+as.character(questionnaire$`Q6 : Lower frequency of bowel movements`[which(questionnaire$Time.point == 'B')]),
+as.character(questionnaire$`Q6 : Lower frequency of bowel movements`[which(questionnaire$Time.point == 'C')]))
+#missing data
+response[response==''] = NA
+
+names(response) = questionnaire$sangerID[c(which(questionnaire$Time.point == 'A'),which(questionnaire$Time.point == 'B'),which(questionnaire$Time.point == 'C'))]
+
+
+ps2@sam_data$response = response[match(ps2@sam_data$sangerID,names(response))]
+
+#table(ps2@sam_data$group,ps2@sam_data$cluster,ps2@sam_data$response,ps2@sam_data$time)
+
+sub.data = ps2@sam_data[which(ps2@sam_data$group == 'Case'),]
+if(length(which(is.na(sub.data$response))) > 0) sub.data = sub.data[-which(is.na(sub.data$response)),]
+
+#table(sub.data$cluster,sub.data$response,sub.data$time)
+sub.data$response = factor(sub.data$response)
+sub.data$cluster = factor(sub.data$cluster)
+sub.data = data.frame(sub.data)
+
+#create a labeller function for facet
+variable_names <- list(
+  "A" = "Pre-diet" ,
+  "B" = "During diet",
+  "C" = "Post-diet"
+)
+
+
+variable_labeller <- function(variable,value){
+  return(variable_names[value])
+}
+
+#remove patients not part of a cluster
+sub.data = sub.data[-which(is.na(sub.data$cluster)),]
+sub.data$response = as.numeric(as.character(sub.data$response))
+
+table(sub.data$cluster,sub.data$time)
+
+g <- ggplot(data = sub.data, aes(x = cluster, y=response,fill = cluster))
+g + geom_boxplot(position = position_dodge(width = 0.9)) + facet_wrap(~time,labeller=variable_labeller) + ggtitle('How satisfied with bowel habits?') + scale_x_discrete(labels = c("cluster1", "cluster2")) + scale_fill_manual(values = mypalette[2:1]) + ylab('percentage')
+
+
+idx = which(sub.data$time=='A')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='B')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='C')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+```
+
+### Is improvement after diet intervention cluster-specific? (how severe is abdominal pain?)
+
+Pain severity goes lower in cluster 2 during but comes back after a month, whereas it remains low in cluster 1.
+
+```{r}
+response = c(as.character(questionnaire$`Q18 : If yes, how severe is abdominal pain?`[which(questionnaire$Time.point == 'A')]),
+as.character(questionnaire$`Q2 : Discomfort or pain occurs only during menstruation`[which(questionnaire$Time.point == 'B')]),
+as.character(questionnaire$`Q2 : Discomfort or pain occurs only during menstruation`[which(questionnaire$Time.point == 'C')]))
+#missing data
+response[response==''] = NA
+
+names(response) = questionnaire$sangerID[c(which(questionnaire$Time.point == 'A'),which(questionnaire$Time.point == 'B'),which(questionnaire$Time.point == 'C'))]
+
+
+ps2@sam_data$response = response[match(ps2@sam_data$sangerID,names(response))]
+
+#table(ps2@sam_data$group,ps2@sam_data$cluster,ps2@sam_data$response,ps2@sam_data$time)
+
+sub.data = ps2@sam_data[which(ps2@sam_data$group == 'Case'),]
+if(length(which(is.na(sub.data$response))) > 0) sub.data = sub.data[-which(is.na(sub.data$response)),]
+
+#table(sub.data$cluster,sub.data$response,sub.data$time)
+sub.data$response = factor(sub.data$response)
+sub.data$cluster = factor(sub.data$cluster)
+sub.data = data.frame(sub.data)
+
+#create a labeller function for facet
+variable_names <- list(
+  "A" = "Pre-diet" ,
+  "B" = "During diet",
+  "C" = "Post-diet"
+)
+
+
+variable_labeller <- function(variable,value){
+  return(variable_names[value])
+}
+
+#remove patients not part of a cluster
+sub.data = sub.data[-which(is.na(sub.data$cluster)),]
+sub.data$response = as.numeric(as.character(sub.data$response))
+
+table(sub.data$cluster,sub.data$time)
+
+g <- ggplot(data = sub.data, aes(x = cluster, y=response,fill = cluster))
+g + geom_boxplot(position = position_dodge(width = 0.9)) + facet_wrap(~time,labeller=variable_labeller) + ggtitle('how severe is abdominal pain?') + scale_x_discrete(labels = c("cluster1", "cluster2")) + scale_fill_manual(values = mypalette[2:1]) + ylab('percentage')
+
+
+idx = which(sub.data$time=='A')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='B')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='C')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+```
+
+### Is improvement after diet intervention cluster-specific? (Total IBS score)
+
+
+
+```{r}
+response.1 = c(as.numeric(as.character(questionnaire$`Q18 : If yes, how severe is abdominal pain?`[which(questionnaire$Time.point == 'A')])),
+as.numeric(as.character(questionnaire$`Q2 : Discomfort or pain occurs only during menstruation`[which(questionnaire$Time.point == 'B')])),
+as.numeric(as.character(questionnaire$`Q2 : Discomfort or pain occurs only during menstruation`[which(questionnaire$Time.point == 'C')])))
+#response.1[is.na(response.1)] = 0
+
+
+
+response.2 = c(as.numeric(as.character(questionnaire$`Q22 :  How satisfied with bowel habits?`[which(questionnaire$Time.point == 'A')])),
+as.numeric(as.character(questionnaire$`Q6 : Lower frequency of bowel movements`[which(questionnaire$Time.point == 'B')])),
+as.numeric(as.character(questionnaire$`Q6 : Lower frequency of bowel movements`[which(questionnaire$Time.point == 'C')])))
+#response.2[is.na(response.2)] = 0
+
+
+response.3 = c(as.numeric(as.character(questionnaire$`Q21 :  If yes, how severe is the abdominal distension/tightness?`[which(questionnaire$Time.point == 'A')])),
+as.numeric(as.character(questionnaire$`Q5 : Higher frequency of bowel movements`[which(questionnaire$Time.point == 'B')])),
+as.numeric(as.character(questionnaire$`Q5 : Higher frequency of bowel movements`[which(questionnaire$Time.point == 'C')])))
+#response.3[is.na(response.3)] = 0
+
+
+
+response.4 = c(as.numeric(as.character(questionnaire$`Q23 :  How much adbominal pain or discomfort of altered bowel habits has affected or interfered with your life?`[which(questionnaire$Time.point == 'A')])),
+as.numeric(as.character(questionnaire$`Q7 : Stool looseness`[which(questionnaire$Time.point == 'B')])),
+as.numeric(as.character(questionnaire$`Q7 : Stool looseness`[which(questionnaire$Time.point == 'C')])))
+#response.4[is.na(response.4)] = 0
+
+response.5 = c(as.numeric(as.character(questionnaire$`Q19 :  How many days with pain?`[which(questionnaire$Time.point == 'A')])),
+as.numeric(as.character(questionnaire$`Q3: Discomfort or pain >= 6 months`[which(questionnaire$Time.point == 'B')])),
+as.numeric(as.character(questionnaire$`Q3: Discomfort or pain >= 6 months`[which(questionnaire$Time.point == 'C')])))
+#response.5[is.na(response.5)] = 0
+#missing data
+response = response.1 + response.2 + response.3 + response.4 + response.5
+
+
+names(response) = questionnaire$sangerID[c(which(questionnaire$Time.point == 'A'),which(questionnaire$Time.point == 'B'),which(questionnaire$Time.point == 'C'))]
+
+
+ps2@sam_data$response = response[match(ps2@sam_data$sangerID,names(response))]
+
+#table(ps2@sam_data$group,ps2@sam_data$cluster,ps2@sam_data$response,ps2@sam_data$time)
+
+sub.data = ps2@sam_data[which(ps2@sam_data$group == 'Case'),]
+if(length(which(is.na(sub.data$response))) > 0) sub.data = sub.data[-which(is.na(sub.data$response)),]
+
+#table(sub.data$cluster,sub.data$response,sub.data$time)
+sub.data$response = factor(sub.data$response)
+sub.data$cluster = factor(sub.data$cluster)
+sub.data = data.frame(sub.data)
+
+#create a labeller function for facet
+variable_names <- list(
+  "A" = "Pre-diet" ,
+  "B" = "During diet",
+  "C" = "Post-diet"
+)
+
+
+variable_labeller <- function(variable,value){
+  return(variable_names[value])
+}
+
+#remove patients not part of a cluster
+sub.data = sub.data[-which(is.na(sub.data$cluster)),]
+sub.data$response = as.numeric(as.character(sub.data$response))
+
+table(sub.data$cluster,sub.data$time)
+
+g <- ggplot(data = sub.data, aes(x = cluster, y=response,fill = cluster))
+g + geom_boxplot(position = position_dodge(width = 0.9)) + facet_wrap(~time,labeller=variable_labeller) + ggtitle('Total IBS score') + scale_x_discrete(labels = c("cluster1", "cluster2")) + scale_fill_manual(values = mypalette[2:1]) + ylab('IBS score')
+
+
+idx = which(sub.data$time=='A')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='B')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+idx = which(sub.data$time=='C')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$cluster == 'cl1')],sub.sub.data$response[which(sub.sub.data$cluster == 'cl2')])
+
+
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'A')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+idx = which(sub.data$cluster=='cl1')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+
+
+idx = which(sub.data$cluster=='cl2')
+sub.sub.data = sub.data[idx,]
+wilcox.test(sub.sub.data$response[which(sub.sub.data$time == 'C')],sub.sub.data$response[which(sub.sub.data$time == 'B')])
+```
+
+### Is there difference in IBS type between clusters?
+```{r}
+response = as.character(questionnaire$...28[which(questionnaire$Time.point == 'A')])
+#missing data
+response[response==''] = 'NA'
+
+names(response) = questionnaire$sangerID[which(questionnaire$Time.point == 'A')]
+
+#1: IBS-D
+#2: IBS-M
+# NA: missing data
+
+response.order = response[match(ps2@sam_data$sangerID,names(response))]
+
+table(ps2@sam_data$group,ps2@sam_data$cluster,response.order,ps2@sam_data$time)
+
+```
+
+
+### Is there difference between clusters in term of post-infection?
+No difference --> N:9/9 and Y=3/3  
+
+```{r}
+response = as.character(questionnaire$...27[which(questionnaire$Time.point == 'A')])
+#missing data
+response[response==''] = 'NA'
+
+names(response) = questionnaire$sangerID[which(questionnaire$Time.point == 'A')]
+
+#Y: post-infection
+#N: not post-infection
+# NA: missing data
+
+response.order = response[match(ps2@sam_data$sangerID,names(response))]
+
+table(ps2@sam_data$group,ps2@sam_data$cluster,response.order,ps2@sam_data$time)
+
+```
+
+
+
+### Maaslin2
+```{r}
+sub.metadata = ps2@sam_data[,c('sangerID','pair','group','time','cluster')]
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[6] = 'ClusterxTime'
+colnames(sub.metadata)[1] = 'Sample_ID'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[7] = 'GroupxClusterxTime'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$cluster,sep='-'))
+colnames(sub.metadata)[8] = 'GroupxCluster'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[9] = 'GroupxTime'
+
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters_A_B_C_with_controls/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+relab = data.frame(ps2@otu_table)
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda_2clusters_A_B_C_with_controls/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda_2clusters_A_B_C_with_controls/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters_A_B_C_with_controls/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters_A_B_C_with_controls',
+                     random_effects = 'pair',
+                     fixed_effects = c('group','time','cluster','GroupxClusterxTime','GroupxTime','GroupxCluster','ClusterxTime'),transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2) 
+
+```
+
+```{r}
+sub.metadata = ps2@sam_data[,c('sangerID','pair','group','time','cluster')]
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[6] = 'ClusterxTime'
+colnames(sub.metadata)[1] = 'Sample_ID'
+
+sub.metadata = sub.metadata[which(sub.metadata$group == 'Case'),]
+sub.metadata = sub.metadata[,-3]
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters_A_B_C/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+relab = data.frame(ps2@otu_table)
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda_2clusters_A_B_C/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda_2clusters_A_B_C/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters_A_B_C/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters_A_B_C',
+                     random_effects = 'pair',
+                     fixed_effects = c('time','cluster','ClusterxTime'),transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2) 
+
+```
+
+# Genus level analysis
+```{r}
+# Please insert the name of the Kraken output file (raw/normalized)
+MYDATAFILE = 'merged_G.bracken'
+
+# Please insert the name of the metadata file (first column should be lane ID, second column should be group ID)
+MYMETADATAFILE = 'sample_working_list.txt'
+```
+
+```{r}
+# read metadata
+metadata = read.delim(MYMETADATAFILE)
+metadata = metadata[,-2]
+
+questionnaire = metadata[,c(1:5,8:54)]
+
+metadata = metadata[,c(1:5)]
+colnames(metadata) = c('sangerID','patient','time','group','pair')
+  
+# read abundance info
+dat = read.delim(MYDATAFILE,header = TRUE,stringsAsFactors=FALSE,check.names = FALSE)
+
+# change columns name to only keep the Sanger lane ID
+colnames(dat) = gsub(x = colnames(dat),pattern = '.bracken',replacement = '')
+
+# FIX: remove multiple columns created due to bug in metagm_classifiy.py (now fixed)
+dat = dat[,!duplicated(colnames(dat))]
+
+tmp = dat[,c(1,grep(colnames(dat),pattern = '_num'))]
+row.names(tmp) = tmp$name
+colnames(tmp) = gsub(x = colnames(tmp),pattern = '_G_num',replacement = '')
+
+tmp = t(tmp[,-1])
+tmp = tmp[order(row.names(tmp)),]
+metadata = metadata[order(metadata$sangerID),]
+
+
+metadata = metadata[which(metadata$sangerID %in% intersect(row.names(tmp),metadata$sangerID)),]
+tmp = tmp[which(row.names(tmp) %in% intersect(row.names(tmp),metadata$sangerID)),]
+
+row.names(metadata) = row.names(tmp)
+
+
+ idx = which(metadata$time == 'C' | metadata$time == 'B' | metadata$time == 'A') 
+ idx2 = names(which(table(metadata$pair[idx]) >= 4)) # 38 pairs included out of 55
+ sub.meta = metadata[which(metadata$pair %in% idx2),]
+ sub.tmp = tmp[which(metadata$pair %in% idx2),]
+ sub.tmp = sub.tmp[which(sub.meta$time == 'C' | sub.meta$time == 'B' | sub.meta$time == 'A'),] # 187 samples
+ sub.meta = sub.meta[which(sub.meta$time == 'C' | sub.meta$time == 'B' | sub.meta$time == 'A'),] 
+ ps <- phyloseq(sample_data(sub.meta),
+                  otu_table(sub.tmp, taxa_are_rows = FALSE))
+ 
+# Transformation to CoDA
+sum(ps@otu_table == 0)
+100*sum(ps@otu_table == 0)/length(ps@otu_table)
+
+prevalence = 100*apply(ps@otu_table,2,function(x) sum(x>0)/length(x))
+total.read.count = apply(ps@otu_table,2,sum)
+
+plot(total.read.count,prevalence,pch=16,log='x',ylim=c(0,100))
+abline(h = 10,lty=2)
+
+## Filter rare taxa -->NONE
+
+#  Define prevalence threshold as 10% of total samples
+prevalenceThreshold = 0.1 * nsamples(ps)
+prevalenceThreshold
+
+# Execute prevalence filter, using `prune_taxa()` function
+keepTaxa = names(prevalence)[(prevalence >= prevalenceThreshold)]
+ps1 = prune_taxa(keepTaxa, ps)
+
+
+## Estimate zeros
+d.czm <- cmultRepl(ps1@otu_table,  label=0, method="CZM")
+d.clr <- t(apply(d.czm, 1, function(x){log(x) - mean(log(x))}))
+ps2 = ps1
+ps2@otu_table = otu_table(d.clr, taxa_are_rows = FALSE)
+
+```
+
+
+```{r}
+#cluster info
+ps2@sam_data$cluster = c(cluster.label.cases,cluster.label)[match(ps2@sam_data$sangerID, names(c(cluster.label.cases,cluster.label)))]
+
+
+
+#find controls
+idx = which(is.na(ps2@sam_data$cluster))
+for(i in idx){
+  ps2@sam_data$cluster[i] = ps2@sam_data$cluster[which(ps2@sam_data$pair == ps2@sam_data$pair[i] & ps2@sam_data$group == 'Case')][!is.na(ps2@sam_data$cluster[which(ps2@sam_data$pair == ps2@sam_data$pair[i] & ps2@sam_data$group == 'Case')])][1]
+}
+```
+
+
+
+### Maaslin2
+```{r}
+sub.metadata = ps2@sam_data[,c('sangerID','pair','group','time','cluster')]
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[6] = 'ClusterxTime'
+colnames(sub.metadata)[1] = 'Sample_ID'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[7] = 'GroupxClusterxTime'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$cluster,sep='-'))
+colnames(sub.metadata)[8] = 'GroupxCluster'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[9] = 'GroupxTime'
+
+idx = which(is.na(sub.metadata$cluster))
+sub.metadata = sub.metadata[-idx,]
+
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters_A_B_C_with_controls_genus/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+relab = data.frame(ps2@otu_table)
+relab = relab[-idx,]
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda_2clusters_A_B_C_with_controls_genus/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda_2clusters_A_B_C_with_controls_genus/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters_A_B_C_with_controls_genus/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters_A_B_C_with_controls_genus',
+                     random_effects = 'pair',
+                     fixed_effects = c('group','time','cluster','GroupxClusterxTime','GroupxTime','GroupxCluster','ClusterxTime'),transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2) 
+
+```
+
+```{r}
+sub.metadata = ps2@sam_data[,c('sangerID','pair','group','time','cluster')]
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[6] = 'ClusterxTime'
+colnames(sub.metadata)[1] = 'Sample_ID'
+
+sub.metadata = sub.metadata[which(sub.metadata$group == 'Case'),]
+
+sub.metadata = sub.metadata[,-3]
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters_A_B_C_genus/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+relab = data.frame(ps2@otu_table)
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda_2clusters_A_B_C_genus/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda_2clusters_A_B_C_genus/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters_A_B_C_genus/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters_A_B_C_genus',
+                     random_effects = 'pair',
+                     fixed_effects = c('time','cluster','ClusterxTime'),transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2) 
+
+```
+
+
+# Phylum level analysis
+```{r}
+# Please insert the name of the Kraken output file (raw/normalized)
+MYDATAFILE = 'merged_P.bracken'
+
+# Please insert the name of the metadata file (first column should be lane ID, second column should be group ID)
+MYMETADATAFILE = 'sample_working_list.txt'
+```
+
+```{r}
+# read metadata
+metadata = read.delim(MYMETADATAFILE)
+metadata = metadata[,-2]
+
+questionnaire = metadata[,c(1:5,8:54)]
+
+metadata = metadata[,c(1:5)]
+colnames(metadata) = c('sangerID','patient','time','group','pair')
+  
+# read abundance info
+dat = read.delim(MYDATAFILE,header = TRUE,stringsAsFactors=FALSE,check.names = FALSE)
+
+# change columns name to only keep the Sanger lane ID
+colnames(dat) = gsub(x = colnames(dat),pattern = '.bracken',replacement = '')
+
+# FIX: remove multiple columns created due to bug in metagm_classifiy.py (now fixed)
+dat = dat[,!duplicated(colnames(dat))]
+
+tmp = dat[,c(1,grep(colnames(dat),pattern = '_num'))]
+row.names(tmp) = tmp$name
+colnames(tmp) = gsub(x = colnames(tmp),pattern = '_P_num',replacement = '')
+
+tmp = t(tmp[,-1])
+tmp = tmp[order(row.names(tmp)),]
+metadata = metadata[order(metadata$sangerID),]
+
+
+metadata = metadata[which(metadata$sangerID %in% intersect(row.names(tmp),metadata$sangerID)),]
+tmp = tmp[which(row.names(tmp) %in% intersect(row.names(tmp),metadata$sangerID)),]
+
+row.names(metadata) = row.names(tmp)
+
+
+ idx = which(metadata$time == 'C' | metadata$time == 'B' | metadata$time == 'A') 
+ idx2 = names(which(table(metadata$pair[idx]) >= 4)) # 38 pairs included out of 55
+ sub.meta = metadata[which(metadata$pair %in% idx2),]
+ sub.tmp = tmp[which(metadata$pair %in% idx2),]
+ sub.tmp = sub.tmp[which(sub.meta$time == 'C' | sub.meta$time == 'B' | sub.meta$time == 'A'),] # 187 samples
+ sub.meta = sub.meta[which(sub.meta$time == 'C' | sub.meta$time == 'B' | sub.meta$time == 'A'),] 
+ ps <- phyloseq(sample_data(sub.meta),
+                  otu_table(sub.tmp, taxa_are_rows = FALSE))
+ 
+# Transformation to CoDA
+sum(ps@otu_table == 0)
+100*sum(ps@otu_table == 0)/length(ps@otu_table)
+
+prevalence = 100*apply(ps@otu_table,2,function(x) sum(x>0)/length(x))
+total.read.count = apply(ps@otu_table,2,sum)
+
+plot(total.read.count,prevalence,pch=16,log='x',ylim=c(0,100))
+abline(h = 10,lty=2)
+
+## Filter rare taxa -->NONE
+
+#  Define prevalence threshold as 10% of total samples
+prevalenceThreshold = 0.1 * nsamples(ps)
+prevalenceThreshold
+
+# Execute prevalence filter, using `prune_taxa()` function
+keepTaxa = names(prevalence)[(prevalence >= prevalenceThreshold)]
+ps1 = prune_taxa(keepTaxa, ps)
+
+
+## Estimate zeros
+if(sum(ps1@otu_table == 0) == 0){
+  d.czm <- ps1@otu_table
+}else{ 
+  d.czm <- cmultRepl(ps1@otu_table,  label=0, method="CZM")
+}
+d.clr <- t(apply(d.czm, 1, function(x){log(x) - mean(log(x))}))
+ps2 = ps1
+ps2@otu_table = otu_table(d.clr, taxa_are_rows = FALSE)
+
+```
+
+
+```{r}
+#cluster info
+ps2@sam_data$cluster = c(cluster.label.cases,cluster.label)[match(ps2@sam_data$sangerID, names(c(cluster.label.cases,cluster.label)))]
+
+
+
+#find controls
+idx = which(is.na(ps2@sam_data$cluster))
+for(i in idx){
+  ps2@sam_data$cluster[i] = ps2@sam_data$cluster[which(ps2@sam_data$pair == ps2@sam_data$pair[i] & ps2@sam_data$group == 'Case')][!is.na(ps2@sam_data$cluster[which(ps2@sam_data$pair == ps2@sam_data$pair[i] & ps2@sam_data$group == 'Case')])][1]
+}
+```
+
+
+
+### Maaslin2
+```{r}
+sub.metadata = ps2@sam_data[,c('sangerID','pair','group','time','cluster')]
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[6] = 'ClusterxTime'
+colnames(sub.metadata)[1] = 'Sample_ID'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[7] = 'GroupxClusterxTime'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$cluster,sep='-'))
+colnames(sub.metadata)[8] = 'GroupxCluster'
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$group,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[9] = 'GroupxTime'
+
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters_A_B_C_with_controls_phylum/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+relab = data.frame(ps2@otu_table)
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda_2clusters_A_B_C_with_controls_phylum/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda_2clusters_A_B_C_with_controls_phylum/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters_A_B_C_with_controls_phylum/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters_A_B_C_with_controls_phylum',
+                     random_effects = 'pair',
+                     fixed_effects = c('group','time','cluster','GroupxClusterxTime','GroupxTime','GroupxCluster','ClusterxTime'),transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2) 
+
+```
+
+```{r}
+sub.metadata = ps2@sam_data[,c('sangerID','pair','group','time','cluster')]
+sub.metadata = cbind(sub.metadata,paste(sub.metadata$cluster,sub.metadata$time,sep='-'))
+colnames(sub.metadata)[6] = 'ClusterxTime'
+colnames(sub.metadata)[1] = 'Sample_ID'
+
+sub.metadata = sub.metadata[which(sub.metadata$group == 'Case'),]
+sub.metadata = sub.metadata[,-3]
+write.table(sub.metadata,file='MAaSLIN2_Coda_2clusters_A_B_C_phylum/metadata_2clusters.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+relab = data.frame(ps2@otu_table)
+relab[,1] = row.names(relab)
+colnames(relab)[1] = 'Sample_ID'
+row.names(relab) = NULL
+
+write.table(relab,file='MAaSLIN2_Coda_2clusters_A_B_C_phylum/abundances_norm.txt',sep = '\t',quote=F,col.names = T,row.names = F)
+
+
+fit_data <- Maaslin2(input_data = 'MAaSLIN2_Coda_2clusters_A_B_C_phylum/abundances_norm.txt',input_metadata = 'MAaSLIN2_Coda_2clusters_A_B_C_phylum/metadata_2clusters.txt',
+                     output='MAaSLIN2_Coda_2clusters_A_B_C_phylum',
+                     random_effects = 'pair',
+                     fixed_effects = c('time','cluster','ClusterxTime'),transform = 'NONE',normalization = 'NONE',analysis_method='LM',standardize=FALSE,max_significance = 0.1,plot_heatmap = FALSE,min_abundance = 0.2) 
+
+```
