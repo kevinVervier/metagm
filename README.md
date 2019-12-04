@@ -16,10 +16,12 @@ export PATH=/nfs/team162/kv4/github/metagm/metagm/wrapper:$PATH
 ```
 Then:
 	1. Add the following line in your `~/.profile`: `alias metagm_env='source /nfs/team162/kv4/bin/metagm_env/bin/activate'`
+	
 	2. Source it: `source ~/.profile`
+	
 	3. Run `metagm_env` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
 
-_optional_ only if working on __farm5__ or __pcs6__ , load useful modules:
+	4. _optional_ only if working on __farm5__ or __pcs6__ , load useful modules:
 	
 	```
 	module load /nfs/users/nfs_k/kv4/modules/metagm
