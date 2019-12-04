@@ -21,8 +21,12 @@ Then:
 	```
 	2. Source it: `source ~/.profile`
 	3. Run `metagm_env` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
+	4. _optional_ only if working on __farm5__ or __pcs6__ , load useful modules
+	```
+	module load /nfs/users/nfs_k/kv4/modules/metagm
+	```
 	
-Note: to levea the virtual environment, type `deactivate`
+Note: to leave the virtual environment, type `deactivate`
 
 
 
