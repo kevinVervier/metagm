@@ -15,17 +15,18 @@ TODO
 export PATH=/nfs/team162/kv4/github/metagm/metagm/wrapper:$PATH
 ```
 Then: depending of the server you use (farm3 or farm5):
-	* _optional_ only if working on __farm5__ or __pcs6__ , load useful modules: `module load /nfs/users/nfs_k/kv4/modules/metagm`
+
+ * _optional_ only if working on __farm5__ or __pcs6__ , load useful modules: `module load /nfs/users/nfs_k/kv4/modules/metagm`
 	
-	* Add the following line in your `~/.profile`: `alias metagm_env='source /nfs/team162/kv4/bin/metagm_env/bin/activate'`
+ * Add the following line in your `~/.profile`: `alias metagm_env='source /nfs/team162/kv4/bin/metagm_env/bin/activate'`
 	
-	* Add the following line in your `~/.profile`: `alias metagm_env_farm5='source /nfs/team162/kv4/bin/metagm_env_farm5/bin/activate'`
+ * Add the following line in your `~/.profile`: `alias metagm_env_farm5='source /nfs/team162/kv4/bin/metagm_env_farm5/bin/activate'`
 	
-	* Source it: `source ~/.profile`
+ * Source it: `source ~/.profile`
 	
-	* (__farm3__) Run `metagm_env` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
+ * (__farm3__) Run `metagm_env` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
 	
-	* (__farm5__) Run `metagm_env_farm5` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
+ * (__farm5__) Run `metagm_env_farm5` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
 
 
 Note: to leave the virtual environment, type `deactivate`
