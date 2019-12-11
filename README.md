@@ -14,11 +14,14 @@ TODO
 # add the metagm library to your path
 export PATH=/nfs/team162/kv4/github/metagm/metagm/wrapper:$PATH
 ```
-Then:
+Then: depending of the server you use (farm3 or farm5):
 	0. _optional_ only if working on __farm5__ or __pcs6__ , load useful modules: `module load /nfs/users/nfs_k/kv4/modules/metagm`
-	1. Add the following line in your `~/.profile`: `alias metagm_env='source /nfs/team162/kv4/bin/metagm_env/bin/activate'`
+	1a. Add the following line in your `~/.profile`: `alias metagm_env='source /nfs/team162/kv4/bin/metagm_env/bin/activate'`
+	1b. Add the following line in your `~/.profile`: `alias metagm_env_farm5='source /nfs/team162/kv4/bin/metagm_env_farm5/bin/activate'`
 	2. Source it: `source ~/.profile`
-	3. Run `metagm_env` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
+	3a. (__farm3__) Run `metagm_env` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
+	3b. (__farm5__) Run `metagm_env_farm5` in the terminal it should slightly change the prompt (`metagm_env`) in front of it
+
 
 	
 Note: to leave the virtual environment, type `deactivate`
