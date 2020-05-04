@@ -3,7 +3,9 @@
 In this page, we provide examples illustrating the different options offered by the platform.
 
 ## How to cite
-TODO
+metagm_build: "Quality control on reference genomes was done using checkm (ref), filtering out assemblies with more than 5% contamination or less than 90% completeness. High-quality assemblies were used to build a Kraken2 (ref) database. A Bracken (ref) database was also build."
+
+metagm_classify: "Paired-end read files were classified using Kraken2 (ref) custom database (include description? n species?). Bracken (ref) was then applied to obtain species-level metagenomics profiles."
 
 ## Before starting
 
