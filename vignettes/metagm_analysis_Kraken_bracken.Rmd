@@ -30,13 +30,6 @@ MYDATAFILE = 'merged_S.bracken'
 MYMETADATAFILE = 'sample_working_list.txt'
 ```
 
-Load pathogens curated by Ales:
-```{r,eval=F}
-pathogens = sort(unique(read.delim('Z:/pathogen_prevalence/ales_working_list_1019.txt',header=FALSE))[,1])
-pathogens = gsub(pattern = ' ',replacement = '.',x = pathogens)
-```
-
-
 ```{r}
 # read metadata
 metadata = read.delim(MYMETADATAFILE,header=FALSE)
@@ -83,11 +76,6 @@ names(unclassif) = colnames(dat.kraken[which(dat.kraken$rank == 'U'),-c(1:3)])
 
 boxplot(100*(classif/(unclassif+classif)),ylim=c(0,100),ylab='read classification rate(%)')
 median(100*(classif/(unclassif+classif)))
-```
-
-## with project specific isolates (MAGs?)
-```{r}
-#@Ana for genomes location
 ```
 
 # Comparing Case and Control at Baseline (time = A)
